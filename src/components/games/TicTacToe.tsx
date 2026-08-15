@@ -11,10 +11,8 @@ const WINS = [
 ];
 
 const TicTacToe = () => {
-  const { broadcastGameAction, onGameAction } = useRoom();
+  const { activeGame, startGame, makeGameMove, resetActiveGame, user, partner } = useRoom();
   const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
-  const [mySymbol, setMySymbol] = useState<"X" | "O">("X");
-  const [isMyTurn, setIsMyTurn] = useState(true);
   const [winLine, setWinLine] = useState<number[] | null>(null);
   const [scores, setScores] = useState({ me: 0, partner: 0 });
   const [winPoints, setWinPoints] = useState(3);
@@ -29,71 +27,46 @@ const TicTacToe = () => {
 
   const isDraw = useCallback((b: Cell[]) => b.every(c => c !== null), []);
 
+  // Sync state from activeGame
   useEffect(() => {
-    onGameAction.current = (action: { type: string; [key: string]: unknown }) => {
-      if (action.game !== "tictactoe") return;
-      if (action.type === "move") {
-        const index = action.index as number;
-        const symbol = action.symbol as Cell;
-        setBoard(prev => {
-          const next = [...prev];
-          next[index] = symbol;
-          return next;
-        });
-        setIsMyTurn(true);
-      } else if (action.type === "reset") {
-        setBoard(Array(9).fill(null));
-        setWinLine(null);
-        setIsMyTurn(action.starterIsPartner as boolean);
-      } else if (action.type === "init") {
-        const partnerSymbol = action.partnerSymbol as "X" | "O";
-        setMySymbol(partnerSymbol === "X" ? "O" : "X");
-        setBoard(Array(9).fill(null));
-        setWinLine(null);
-        setIsMyTurn(partnerSymbol === "X");
-        setScores({ me: 0, partner: 0 });
-        setWinPoints((action.winPoints as number) || 3);
-      }
-    };
-    return () => { onGameAction.current = null; };
-  }, [onGameAction]);
-
-  useEffect(() => {
-    const { winner, line } = checkWin(board);
-    if (winner) {
+    if (activeGame && activeGame.game_type === "tictactoe") {
+      const state = activeGame.state as { board: Cell[]; winPoints?: number };
+      if (state.board) setBoard(state.board);
+      if (state.winPoints) setWinPoints(state.winPoints);
+      
+      const { winner, line } = checkWin(state.board || Array(9).fill(null));
       setWinLine(line);
-      if (winner === mySymbol) {
-        setScores(s => ({ ...s, me: s.me + 1 }));
-      } else {
-        setScores(s => ({ ...s, partner: s.partner + 1 }));
-      }
+      
+      // Calculate scores based on finished games if needed, 
+      // but for now let's just use local session scores or add to DB state
     }
-  }, [board, checkWin, mySymbol]);
+  }, [activeGame, checkWin]);
 
-  const handleClick = (i: number) => {
-    if (!isMyTurn || board[i] || winLine) return;
-    const next = [...board];
-    next[i] = mySymbol;
-    setBoard(next);
-    setIsMyTurn(false);
-    broadcastGameAction({ game: "tictactoe", type: "move", index: i, symbol: mySymbol });
+  const isMyTurn = activeGame?.game_type === "tictactoe" && activeGame.current_turn_id === user?.id && !winLine;
+  const mySymbol = activeGame?.player1_id === user?.id ? "X" : "O";
+
+  const handleClick = async (i: number) => {
+    if (!isMyTurn || board[i] || winLine || !activeGame) return;
+    
+    const nextBoard = [...board];
+    nextBoard[i] = mySymbol;
+    
+    const { winner } = checkWin(nextBoard);
+    const nextTurnId = winner || isDraw(nextBoard) ? activeGame.current_turn_id : partner?.id || null;
+    const winnerId = winner ? user?.id : null;
+
+    await makeGameMove({ board: nextBoard, winPoints }, nextTurnId, winnerId);
   };
 
-  const resetGame = () => {
-    setBoard(Array(9).fill(null));
-    setWinLine(null);
-    setIsMyTurn(true);
-    broadcastGameAction({ game: "tictactoe", type: "reset", starterIsPartner: true });
+  const resetGame = async () => {
+    if (!activeGame || !partner) return;
+    // Next round starts with whoever didn't start last or just random
+    await resetActiveGame(partner.id, { board: Array(9).fill(null), winPoints });
   };
 
-  const startNewMatch = () => {
-    const sym = Math.random() > 0.5 ? "X" : "O";
-    setMySymbol(sym as "X" | "O");
-    setBoard(Array(9).fill(null));
-    setWinLine(null);
-    setIsMyTurn(sym === "X");
+  const startNewMatch = async () => {
+    await startGame("tictactoe", { board: Array(9).fill(null), winPoints });
     setScores({ me: 0, partner: 0 });
-    broadcastGameAction({ game: "tictactoe", type: "init", partnerSymbol: sym, winPoints });
   };
 
   const { winner } = checkWin(board);
