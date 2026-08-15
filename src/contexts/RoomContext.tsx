@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { useCouple } from "./CoupleContext";
 import { usePresence } from "@/hooks/usePresence";
 import { chatService } from "@/lib/services/chatService";
+import { gameService, type GameSession, type GameType } from "@/lib/services/gameService";
 import { toast } from "@/hooks/use-toast";
 import {
   useRealtimeRoom,
