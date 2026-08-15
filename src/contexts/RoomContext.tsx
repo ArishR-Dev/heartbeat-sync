@@ -6,6 +6,7 @@ import { usePresence } from "@/hooks/usePresence";
 import { chatService } from "@/lib/services/chatService";
 import { gameService, type GameSession, type GameType } from "@/lib/services/gameService";
 import { toast } from "@/hooks/use-toast";
+import { holdHandsService, type HoldHandsSession, type HoldHandsState } from "@/lib/services/holdHandsService";
 import {
   useRealtimeRoom,
   type VideoAction,
@@ -82,6 +83,7 @@ interface RoomState {
   hostOnlyControl: boolean;
   hostId: string | null;
   activeGame: GameSession | null;
+  holdHandsSession: HoldHandsSession | null;
 }
 
 interface RoomContextType extends RoomState {
@@ -198,6 +200,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     hostOnlyControl: true,
     hostId: null,
     activeGame: null,
+    holdHandsSession: null,
   });
 
   // Persist
@@ -243,19 +246,15 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleCursorMove = useCallback((pos: { x: number; y: number }) => { setState((s) => ({ ...s, partnerCursor: pos })); }, []);
 
   const handleHoldHands = useCallback((holding: boolean) => {
-    setState((s) => ({ ...s, partnerHoldHands: holding, holdingHands: s.myHoldHands && holding }));
+    // Legacy support if needed, but we prefer DB state now
   }, []);
 
   const handleHoldHandsRequest = useCallback((fromUser: string) => {
-    setState((s) => ({ ...s, holdHandsRequest: fromUser }));
+    // Legacy support
   }, []);
 
   const handleHoldHandsResponse = useCallback((accepted: boolean) => {
-    if (accepted) {
-      setState((s) => ({ ...s, holdingHands: true, myHoldHands: true, partnerHoldHands: true, holdHandsRequest: null }));
-    } else {
-      setState((s) => ({ ...s, myHoldHands: false, holdHandsRequest: null }));
-    }
+    // Legacy support
   }, []);
 
   const handleSecretMessage = useCallback((handleMsg: SecretMessagePayload) => {
@@ -461,6 +460,103 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [coupleId]);
 
+  // Hold Hands Session Sync
+  useEffect(() => {
+    if (!coupleId) return;
+
+    const loadSession = async () => {
+      const session = await holdHandsService.getSession(coupleId);
+      if (session) {
+        setState(s => ({ ...s, holdHandsSession: session }));
+      }
+    };
+
+    loadSession();
+
+    const subscription = holdHandsService.subscribe(coupleId, (session) => {
+      setState(s => ({ ...s, holdHandsSession: session }));
+    });
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [coupleId]);
+
+  // Derive Hold Hands UI state from authoritative session
+  useEffect(() => {
+    const session = state.holdHandsSession;
+    if (!session || !user) {
+      setState(s => ({
+        ...s,
+        holdingHands: false,
+        myHoldHands: false,
+        partnerHoldHands: false,
+        holdHandsRequest: null,
+      }));
+      return;
+    }
+
+    const isExpired = new Date(session.expires_at).getTime() < Date.now();
+    const isRequester = session.requester_id === user.id;
+
+    if (session.state === 'idle' || isExpired) {
+      setState(s => ({
+        ...s,
+        holdingHands: false,
+        myHoldHands: false,
+        partnerHoldHands: false,
+        holdHandsRequest: null,
+      }));
+      return;
+    }
+
+    if (session.state === 'requesting') {
+      setState(s => ({
+        ...s,
+        holdingHands: false,
+        myHoldHands: isRequester,
+        partnerHoldHands: !isRequester,
+        holdHandsRequest: isRequester ? null : (partner?.email || 'Partner'),
+      }));
+    } else if (session.state === 'approaching') {
+      setState(s => ({
+        ...s,
+        holdingHands: true, // This triggers the overlay animation
+        myHoldHands: true,
+        partnerHoldHands: true,
+        holdHandsRequest: null,
+      }));
+      
+      // After approach animation (usually ~2s), we transition to 'holding'
+      // But only the requester should trigger the DB update to avoid double-writes
+      if (isRequester) {
+        setTimeout(async () => {
+          // Verify we're still in approaching state before moving to holding
+          const current = await holdHandsService.getSession(coupleId!);
+          if (current?.state === 'approaching') {
+            await holdHandsService.updateState(current.id, 'holding', current.version);
+          }
+        }, 2500);
+      }
+    } else if (session.state === 'holding') {
+      setState(s => ({
+        ...s,
+        holdingHands: true,
+        myHoldHands: true,
+        partnerHoldHands: true,
+        holdHandsRequest: null,
+      }));
+    } else if (session.state === 'releasing') {
+      setState(s => ({
+        ...s,
+        holdingHands: false,
+        myHoldHands: false,
+        partnerHoldHands: false,
+        holdHandsRequest: null,
+      }));
+    }
+  }, [state.holdHandsSession, user?.id, partner?.email, coupleId]);
+
   const handleCursorChange = useCallback((packId: string) => {
     setState((s) => ({ ...s, partnerCursorPack: packId }));
   }, []);
@@ -508,29 +604,37 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStateLoading(false);
   }, [leaveCouple]);
 
-  const toggleMyHoldHands = useCallback(() => {
-    setState((s) => {
-      const newMy = !s.myHoldHands;
-      rt.sendHoldHands(newMy);
-      return { ...s, myHoldHands: newMy, holdingHands: newMy && s.partnerHoldHands };
-    });
-  }, [rt]);
-
-  const requestHoldHands = useCallback(() => {
-    rt.sendHoldHandsRequest(getUserName());
-    setState((s) => ({ ...s, myHoldHands: true }));
-    rt.sendHoldHands(true);
-  }, [rt]);
-
-  const respondHoldHands = useCallback((accepted: boolean) => {
-    rt.sendHoldHandsResponse(accepted);
-    if (accepted) {
-      setState((s) => ({ ...s, holdingHands: true, myHoldHands: true, partnerHoldHands: true, holdHandsRequest: null }));
-      rt.sendHoldHands(true);
-    } else {
-      setState((s) => ({ ...s, holdHandsRequest: null }));
+  const toggleMyHoldHands = useCallback(async () => {
+    if (!state.holdHandsSession || !coupleId) return;
+    
+    if (state.holdingHands) {
+      await holdHandsService.updateState(state.holdHandsSession.id, 'releasing', state.holdHandsSession.version);
+      // Animation will play and then we reset to idle
+      setTimeout(async () => {
+        await holdHandsService.reset(state.holdHandsSession!.id);
+      }, 2000);
     }
-  }, [rt]);
+  }, [state.holdHandsSession, state.holdingHands, coupleId]);
+
+  const requestHoldHands = useCallback(async () => {
+    if (!coupleId || !user) return;
+    
+    // Find room ID
+    const { data: roomData } = await supabase.from('rooms').select('id').eq('couple_id', coupleId).eq('is_active', true).single();
+    if (!roomData) return;
+
+    await holdHandsService.request(coupleId, roomData.id, user.id);
+  }, [coupleId, user]);
+
+  const respondHoldHands = useCallback(async (accepted: boolean) => {
+    if (!state.holdHandsSession) return;
+
+    if (accepted) {
+      await holdHandsService.updateState(state.holdHandsSession.id, 'approaching', state.holdHandsSession.version);
+    } else {
+      await holdHandsService.reset(state.holdHandsSession.id);
+    }
+  }, [state.holdHandsSession]);
 
   const broadcastVideoAction = useCallback(async (action: VideoAction) => {
     if (!coupleId) return;
