@@ -42,7 +42,7 @@ const WaitingScreen = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="w-9 h-10 flex items-center justify-center rounded-lg bg-muted text-foreground font-mono font-bold text-lg"
+                className="w-10 h-12 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/20 font-mono font-black text-xl shadow-inner"
               >
                 {ch}
               </motion.span>
