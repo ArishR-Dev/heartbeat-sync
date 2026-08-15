@@ -30,26 +30,29 @@ const TicTacToe = () => {
   const isDraw = useCallback((b: Cell[]) => b.every(c => c !== null), []);
 
   useEffect(() => {
-    onGameAction.current = (action: { type: string; payload?: unknown }) => {
+    onGameAction.current = (action: { type: string; [key: string]: unknown }) => {
       if (action.game !== "tictactoe") return;
       if (action.type === "move") {
+        const index = action.index as number;
+        const symbol = action.symbol as Cell;
         setBoard(prev => {
           const next = [...prev];
-          next[action.index] = action.symbol;
+          next[index] = symbol;
           return next;
         });
         setIsMyTurn(true);
       } else if (action.type === "reset") {
         setBoard(Array(9).fill(null));
         setWinLine(null);
-        setIsMyTurn(action.starterIsPartner);
+        setIsMyTurn(action.starterIsPartner as boolean);
       } else if (action.type === "init") {
-        setMySymbol(action.partnerSymbol === "X" ? "O" : "X");
+        const partnerSymbol = action.partnerSymbol as "X" | "O";
+        setMySymbol(partnerSymbol === "X" ? "O" : "X");
         setBoard(Array(9).fill(null));
         setWinLine(null);
-        setIsMyTurn(action.partnerSymbol === "X");
+        setIsMyTurn(partnerSymbol === "X");
         setScores({ me: 0, partner: 0 });
-        setWinPoints(action.winPoints || 3);
+        setWinPoints((action.winPoints as number) || 3);
       }
     };
     return () => { onGameAction.current = null; };
