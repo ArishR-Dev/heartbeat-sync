@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface RealtimeEvents {
   onPartnerJoin: () => void;
@@ -61,21 +62,24 @@ export interface SchedulePayload {
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
 
 /**
- * Frontend-only mock of the realtime hook.
- * In this recovery version, we simulate a local environment.
+ * Realtime hook for room interactions.
  */
-export function useRealtimeRoom(roomCode: string | null, userId: string, events: RealtimeEvents) {
-  const [partnerPresent, setPartnerPresent] = useState(false);
+export function useRealtimeRoom(coupleId: string | null, userId: string, events: RealtimeEvents) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
-    roomCode ? "connected" : "disconnected"
+    coupleId ? "connected" : "disconnected"
   );
 
   const broadcast = useCallback(
     (event: string, payload: Record<string, unknown>) => {
-      console.log(`[Mock Realtime] Broadcast ${event}`, payload);
-      // In local-only mode, we don't have anyone to broadcast to.
+      if (!coupleId) return;
+      const channel = supabase.channel(`room_events:${coupleId}`);
+      channel.send({
+        type: 'broadcast',
+        event,
+        payload
+      });
     },
-    []
+    [coupleId]
   );
 
   const sendChat = useCallback(
@@ -102,7 +106,6 @@ export function useRealtimeRoom(roomCode: string | null, userId: string, events:
   const sendGameAction = useCallback((action: Record<string, unknown>) => broadcast("game_action", { action }), [broadcast]);
 
   return {
-    partnerPresent,
     connectionStatus,
     sendChat,
     sendReaction,
