@@ -98,7 +98,7 @@ const RoomLobby = () => {
           </div>
 
           {/* Join Room */}
-          <div className="glass-strong rounded-2xl p-1 space-y-1">
+          <div className="glass-strong rounded-pookie p-1 space-y-1">
             <div className="relative">
               <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input

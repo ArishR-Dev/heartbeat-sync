@@ -174,7 +174,9 @@ const RoomPage = () => {
             >
               {/* Left - Video + Actions */}
               <div className="flex-1 flex flex-col gap-3 min-w-0">
-                <VideoPlayer onVideoLoaded={handleVideoLoaded} />
+                <div className="rounded-pookie overflow-hidden border border-border/30 shadow-2xl">
+                  <VideoPlayer onVideoLoaded={handleVideoLoaded} />
+                </div>
                 <div className="flex items-center gap-3 flex-wrap">
                   <motion.button
                     whileHover={{ scale: 1.03 }}
