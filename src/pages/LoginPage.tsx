@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 const AVATARS = ["🐱", "🐶", "🦊", "🐰", "🐻", "🦄", "🐼", "🐨"];
 
 const LoginPage = () => {
-  const { login, register, signInWithGoogle, isLoading } = useAuth();
+  const { login, register, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
@@ -64,15 +64,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setAuthError("");
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Google login failed";
-      setAuthError(message);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -252,18 +243,6 @@ const LoginPage = () => {
               )}
             </motion.button>
 
-            {!isRegister && (
-              <motion.button
-                type="button"
-                disabled={isLoading}
-                onClick={handleGoogleLogin}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm disabled:opacity-60 border border-border"
-              >
-                Continue with Google
-              </motion.button>
-            )}
           </form>
 
           {authError && (
