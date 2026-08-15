@@ -31,76 +31,59 @@ const checkWin = (board: Cell[][], player: Cell): number[][] | null => {
 };
 
 const ConnectFour = () => {
-  const { broadcastGameAction, onGameAction } = useRoom();
+  const { activeGame, startGame, makeGameMove, resetActiveGame, user, partner } = useRoom();
   const [board, setBoard] = useState(createBoard());
-  const [myPlayer, setMyPlayer] = useState<1 | 2>(1);
-  const [isMyTurn, setIsMyTurn] = useState(true);
   const [winCells, setWinCells] = useState<number[][] | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
 
   useEffect(() => {
-    onGameAction.current = (action: { type: string; [key: string]: unknown }) => {
-      if (action.game !== "connect4") return;
-      if (action.type === "drop") {
-        const col = action.col as number;
-        const player = action.player as 1 | 2;
-        setBoard(prev => {
-          const next = prev.map(r => [...r]);
-          for (let r = ROWS - 1; r >= 0; r--) {
-            if (!next[r][col]) { next[r][col] = player; break; }
-          }
-          return next;
-        });
-        setIsMyTurn(true);
-      } else if (action.type === "reset") {
-        setBoard(createBoard());
-        setWinCells(null);
-        setIsMyTurn(action.starterIsPartner as boolean);
-      } else if (action.type === "init") {
-        const partnerPlayer = action.partnerPlayer as number;
-        setMyPlayer(partnerPlayer === 1 ? 2 : 1);
-        setBoard(createBoard());
-        setWinCells(null);
-        setIsMyTurn(partnerPlayer === 1);
-      }
-    };
-    return () => { onGameAction.current = null; };
-  }, [onGameAction]);
+    if (activeGame && activeGame.game_type === "connect4") {
+      const state = activeGame.state as { board: Cell[][] };
+      if (state.board) setBoard(state.board);
+    }
+  }, [activeGame]);
 
   useEffect(() => {
     const w1 = checkWin(board, 1);
     const w2 = checkWin(board, 2);
     if (w1) setWinCells(w1);
     else if (w2) setWinCells(w2);
+    else setWinCells(null);
   }, [board]);
 
-  const drop = (col: number) => {
-    if (!isMyTurn || winCells) return;
+  const isMyTurn = activeGame?.game_type === "connect4" && activeGame.current_turn_id === user?.id && !winCells;
+  const myPlayer = activeGame?.player1_id === user?.id ? 1 : 2;
+
+  const drop = async (col: number) => {
+    if (!isMyTurn || winCells || !activeGame) return;
+    
     let placed = false;
-    const next = board.map(r => [...r]);
+    const nextBoard = board.map(r => [...r]);
     for (let r = ROWS - 1; r >= 0; r--) {
-      if (!next[r][col]) { next[r][col] = myPlayer; placed = true; break; }
+      if (!nextBoard[r][col]) {
+        nextBoard[r][col] = myPlayer;
+        placed = true;
+        break;
+      }
     }
+    
     if (!placed) return;
-    setBoard(next);
-    setIsMyTurn(false);
-    broadcastGameAction({ game: "connect4", type: "drop", col, player: myPlayer });
+
+    const w = checkWin(nextBoard, myPlayer);
+    const isFull = nextBoard[0].every(c => c !== null);
+    const nextTurnId = w || isFull ? activeGame.current_turn_id : partner?.id || null;
+    const winnerId = w ? user?.id : null;
+
+    await makeGameMove({ board: nextBoard }, nextTurnId, winnerId);
   };
 
-  const reset = () => {
-    setBoard(createBoard());
-    setWinCells(null);
-    setIsMyTurn(true);
-    broadcastGameAction({ game: "connect4", type: "reset", starterIsPartner: true });
+  const reset = async () => {
+    if (!activeGame || !partner) return;
+    await resetActiveGame(partner.id, { board: createBoard() });
   };
 
-  const startNew = () => {
-    const p = Math.random() > 0.5 ? 1 : 2;
-    setMyPlayer(p as 1 | 2);
-    setBoard(createBoard());
-    setWinCells(null);
-    setIsMyTurn(p === 1);
-    broadcastGameAction({ game: "connect4", type: "init", partnerPlayer: p });
+  const startNew = async () => {
+    await startGame("connect4", { board: createBoard() });
   };
 
   const isFull = board[0].every(c => c !== null);
