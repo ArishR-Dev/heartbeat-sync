@@ -17,7 +17,9 @@ const loadStats = (): WatchStats => {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) return JSON.parse(s);
-  } catch {}
+  } catch (error) {
+    console.error("WatchAnalytics load error:", error);
+  }
   return { totalMinutesToday: 0, lastSessionDate: getToday(), streakDays: 0, lastActiveDate: "" };
 };
 

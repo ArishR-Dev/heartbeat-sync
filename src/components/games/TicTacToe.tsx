@@ -30,7 +30,7 @@ const TicTacToe = () => {
   const isDraw = useCallback((b: Cell[]) => b.every(c => c !== null), []);
 
   useEffect(() => {
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; payload?: unknown }) => {
       if (action.game !== "tictactoe") return;
       if (action.type === "move") {
         setBoard(prev => {

@@ -101,7 +101,9 @@ const CozyMode = () => {
       const ctx = new AudioContext();
       const { source, gain } = createNoiseSource(ctx, type);
       audioRef.current = { source, gain, ctx };
-    } catch {}
+    } catch (error) {
+      console.error("CozyMode audio error:", error);
+    }
   }, [stopAudio]);
 
   useEffect(() => {

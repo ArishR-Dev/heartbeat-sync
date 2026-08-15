@@ -39,7 +39,7 @@ const ConnectFour = () => {
   const [hoverCol, setHoverCol] = useState<number | null>(null);
 
   useEffect(() => {
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; payload?: unknown }) => {
       if (action.game !== "connect4") return;
       if (action.type === "drop") {
         setBoard(prev => {

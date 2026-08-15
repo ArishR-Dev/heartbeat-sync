@@ -41,7 +41,7 @@ const DotsAndBoxes = () => {
   }, []);
 
   useEffect(() => {
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; payload?: unknown }) => {
       if (action.game !== "dots") return;
       if (action.type === "line") {
         setLines(prev => {

@@ -125,7 +125,7 @@ const ScheduleDate = () => {
 
   useEffect(() => {
     const prevHandler = onGameAction.current;
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; scheduleId?: string }) => {
       if (action?.type === "watch-started" && action?.scheduleId) {
         const sched = scheduledDates.find((d) => d.id === action.scheduleId);
         if (sched && !triggeredRef.current.has(sched.id)) {
@@ -151,8 +151,12 @@ const ScheduleDate = () => {
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
       osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 1);
-    } catch {}
-    try { navigator.vibrate?.([200, 100, 200]); } catch {}
+    } catch (error) {
+      console.error("Watch date sound error:", error);
+    }
+    try { navigator.vibrate?.([200, 100, 200]); } catch (error) {
+      console.error("Vibrate error:", error);
+    }
   }, []);
 
   const enableNotifications = async () => {
