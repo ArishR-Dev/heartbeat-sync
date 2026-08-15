@@ -28,13 +28,15 @@ const GamePanel = () => {
     try {
       const saved = localStorage.getItem("pookie_user");
       if (saved) return JSON.parse(saved).username || "Pookie";
-    } catch {}
+    } catch (error) {
+      console.error("GamePanel username error:", error);
+    }
     return "Pookie";
   };
 
   useEffect(() => {
     const prevHandler = onGameAction.current;
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; game: string; from?: string }) => {
       if (action?.type === "game-invite") {
         setInvite({ game: action.game, from: action.from });
         return;

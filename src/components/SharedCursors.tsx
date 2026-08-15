@@ -15,7 +15,9 @@ const SharedCursors = () => {
     try {
       const saved = localStorage.getItem("pookie_partner_name");
       if (saved) return saved;
-    } catch {}
+    } catch (error) {
+      console.error("SharedCursors partner name error:", error);
+    }
     return "Partner";
   };
 

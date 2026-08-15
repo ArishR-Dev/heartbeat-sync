@@ -39,13 +39,15 @@ const ConnectFour = () => {
   const [hoverCol, setHoverCol] = useState<number | null>(null);
 
   useEffect(() => {
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; [key: string]: unknown }) => {
       if (action.game !== "connect4") return;
       if (action.type === "drop") {
+        const col = action.col as number;
+        const player = action.player as 1 | 2;
         setBoard(prev => {
           const next = prev.map(r => [...r]);
           for (let r = ROWS - 1; r >= 0; r--) {
-            if (!next[r][action.col]) { next[r][action.col] = action.player; break; }
+            if (!next[r][col]) { next[r][col] = player; break; }
           }
           return next;
         });
@@ -53,12 +55,13 @@ const ConnectFour = () => {
       } else if (action.type === "reset") {
         setBoard(createBoard());
         setWinCells(null);
-        setIsMyTurn(action.starterIsPartner);
+        setIsMyTurn(action.starterIsPartner as boolean);
       } else if (action.type === "init") {
-        setMyPlayer(action.partnerPlayer === 1 ? 2 : 1);
+        const partnerPlayer = action.partnerPlayer as number;
+        setMyPlayer(partnerPlayer === 1 ? 2 : 1);
         setBoard(createBoard());
         setWinCells(null);
-        setIsMyTurn(action.partnerPlayer === 1);
+        setIsMyTurn(partnerPlayer === 1);
       }
     };
     return () => { onGameAction.current = null; };

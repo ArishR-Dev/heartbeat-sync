@@ -41,32 +41,34 @@ const DotsAndBoxes = () => {
   }, []);
 
   useEffect(() => {
-    onGameAction.current = (action: any) => {
+    onGameAction.current = (action: { type: string; [key: string]: unknown }) => {
       if (action.game !== "dots") return;
       if (action.type === "line") {
+        const lk = action.lineKey as string;
         setLines(prev => {
           const next = new Set(prev);
-          next.add(action.lineKey);
+          next.add(lk);
           return next;
         });
         setBoxes(prev => {
           const next = new Map(prev);
           if (action.newBoxes) {
-            for (const [k, v] of Object.entries(action.newBoxes)) {
-              next.set(k, v as 1 | 2);
+            for (const [k, v] of Object.entries(action.newBoxes as Record<string, 1 | 2>)) {
+              next.set(k, v);
             }
           }
           return next;
         });
-        setIsMyTurn(!action.extraTurn);
+        setIsMyTurn(!(action.extraTurn as boolean));
       } else if (action.type === "reset" || action.type === "init") {
         setLines(new Set());
         setBoxes(new Map());
         if (action.type === "init") {
-          setMyPlayer(action.partnerPlayer === 1 ? 2 : 1);
-          setIsMyTurn(action.partnerPlayer === 1);
+          const partnerPlayer = action.partnerPlayer as number;
+          setMyPlayer(partnerPlayer === 1 ? 2 : 1);
+          setIsMyTurn(partnerPlayer === 1);
         } else {
-          setIsMyTurn(action.starterIsPartner);
+          setIsMyTurn(action.starterIsPartner as boolean);
         }
       }
     };

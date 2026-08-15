@@ -22,7 +22,7 @@ export interface RealtimeEvents {
   onSyncRequest: () => void;
   onSyncResponse: (state: VideoSyncState) => void;
   onCursorChange: (packId: string) => void;
-  onGameAction: (action: any) => void;
+  onGameAction: (action: { type: string; [key: string]: unknown }) => void;
 }
 
 export interface VideoAction {
@@ -91,9 +91,11 @@ export function useRealtimeRoom(roomCode: string | null, userId: string, events:
         // Store partner's username
         const partnerKey = users.find(k => k !== userId);
         if (partnerKey) {
-          const partnerData = state[partnerKey]?.[0] as any;
+          const partnerData = state[partnerKey]?.[0] as { username?: string } | undefined;
           if (partnerData?.username) {
-            try { localStorage.setItem("pookie_partner_name", partnerData.username); } catch {}
+            try { localStorage.setItem("pookie_partner_name", partnerData.username); } catch (error) {
+              console.error("useRealtimeRoom partner name save error:", error);
+            }
           }
         }
         eventsRef.current.onPartnerJoin();
@@ -108,25 +110,25 @@ export function useRealtimeRoom(roomCode: string | null, userId: string, events:
     });
 
     // All broadcast listeners
-    const broadcastEvents: [string, (payload: any) => void][] = [
-      ["chat", (p: any) => { if (p.sender !== userId) eventsRef.current.onChatMessage(p); }],
-      ["reaction", (p: any) => { if (p.sender !== userId) eventsRef.current.onReaction(p.emoji); }],
-      ["video", (p: any) => { if (p.sender !== userId) eventsRef.current.onVideoAction(p.action); }],
-      ["cursor", (p: any) => { if (p.sender !== userId) eventsRef.current.onCursorMove(p.pos); }],
-      ["holdhands", (p: any) => { if (p.sender !== userId) eventsRef.current.onHoldHands(p.holding); }],
-      ["holdhands_request", (p: any) => { if (p.sender !== userId) eventsRef.current.onHoldHandsRequest(p.fromUser); }],
-      ["holdhands_response", (p: any) => { if (p.sender !== userId) eventsRef.current.onHoldHandsResponse(p.accepted); }],
-      ["secret_message", (p: any) => { if (p.sender !== userId) eventsRef.current.onSecretMessage(p.msg); }],
-      ["memory_add", (p: any) => { if (p.sender !== userId) eventsRef.current.onMemoryAdd(p.memory); }],
-      ["memory_remove", (p: any) => { if (p.sender !== userId) eventsRef.current.onMemoryRemove(p.id); }],
-      ["schedule_add", (p: any) => { if (p.sender !== userId) eventsRef.current.onScheduleAdd(p.schedule); }],
-      ["schedule_remove", (p: any) => { if (p.sender !== userId) eventsRef.current.onScheduleRemove(p.id); }],
-      ["presence_status", (p: any) => { if (p.sender !== userId) eventsRef.current.onPresenceUpdate(p.status); }],
-      ["typing", (p: any) => { if (p.sender !== userId) eventsRef.current.onTypingIndicator(p.typing); }],
-      ["sync_request", (p: any) => { if (p.sender !== userId) eventsRef.current.onSyncRequest(); }],
-      ["sync_response", (p: any) => { if (p.sender !== userId) eventsRef.current.onSyncResponse(p.state); }],
-      ["cursor_change", (p: any) => { if (p.sender !== userId) eventsRef.current.onCursorChange(p.packId); }],
-      ["game_action", (p: any) => { if (p.sender !== userId) eventsRef.current.onGameAction(p.action); }],
+    const broadcastEvents: [string, (payload: { sender: string; [key: string]: any }) => void][] = [
+      ["chat", (p) => { if (p.sender !== userId) eventsRef.current.onChatMessage(p as any); }],
+      ["reaction", (p) => { if (p.sender !== userId) eventsRef.current.onReaction(p.emoji); }],
+      ["video", (p) => { if (p.sender !== userId) eventsRef.current.onVideoAction(p.action); }],
+      ["cursor", (p) => { if (p.sender !== userId) eventsRef.current.onCursorMove(p.pos); }],
+      ["holdhands", (p) => { if (p.sender !== userId) eventsRef.current.onHoldHands(p.holding); }],
+      ["holdhands_request", (p) => { if (p.sender !== userId) eventsRef.current.onHoldHandsRequest(p.fromUser); }],
+      ["holdhands_response", (p) => { if (p.sender !== userId) eventsRef.current.onHoldHandsResponse(p.accepted); }],
+      ["secret_message", (p) => { if (p.sender !== userId) eventsRef.current.onSecretMessage(p.msg); }],
+      ["memory_add", (p) => { if (p.sender !== userId) eventsRef.current.onMemoryAdd(p.memory); }],
+      ["memory_remove", (p) => { if (p.sender !== userId) eventsRef.current.onMemoryRemove(p.id); }],
+      ["schedule_add", (p) => { if (p.sender !== userId) eventsRef.current.onScheduleAdd(p.schedule); }],
+      ["schedule_remove", (p) => { if (p.sender !== userId) eventsRef.current.onScheduleRemove(p.id); }],
+      ["presence_status", (p) => { if (p.sender !== userId) eventsRef.current.onPresenceUpdate(p.status); }],
+      ["typing", (p) => { if (p.sender !== userId) eventsRef.current.onTypingIndicator(p.typing); }],
+      ["sync_request", (p) => { if (p.sender !== userId) eventsRef.current.onSyncRequest(); }],
+      ["sync_response", (p) => { if (p.sender !== userId) eventsRef.current.onSyncResponse(p.state); }],
+      ["cursor_change", (p) => { if (p.sender !== userId) eventsRef.current.onCursorChange(p.packId); }],
+      ["game_action", (p) => { if (p.sender !== userId) eventsRef.current.onGameAction(p.action); }],
     ];
 
     broadcastEvents.forEach(([event, handler]) => {
@@ -138,7 +140,9 @@ export function useRealtimeRoom(roomCode: string | null, userId: string, events:
     try {
       const saved = localStorage.getItem("pookie_user");
       if (saved) username = JSON.parse(saved).username || "Pookie";
-    } catch {}
+    } catch (error) {
+      console.error("useRealtimeRoom username error:", error);
+    }
 
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {

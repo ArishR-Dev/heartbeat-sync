@@ -102,7 +102,7 @@ interface RoomContextType extends RoomState {
   setCursorSize: (size: number) => void;
   setCursorOpacity: (opacity: number) => void;
   broadcastGameAction: (action: Record<string, unknown>) => void;
-  onGameAction: React.MutableRefObject<((action: any) => void) | null>;
+  onGameAction: React.MutableRefObject<((action: { type: string; [key: string]: unknown }) => void) | null>;
 }
 
 type RoomGlobal = typeof globalThis & {
@@ -135,7 +135,9 @@ const getUserName = () => {
   try {
     const saved = localStorage.getItem("pookie_user");
     if (saved) return JSON.parse(saved).username || "Pookie";
-  } catch {}
+  } catch (error) {
+    console.error("RoomContext username error:", error);
+  }
   return "Pookie";
 };
 
@@ -144,7 +146,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const videoActionRef = useRef<((action: VideoAction) => void) | null>(null);
   const syncRequestRef = useRef<(() => void) | null>(null);
   const syncResponseRef = useRef<((state: VideoSyncState) => void) | null>(null);
-  const gameActionRef = useRef<((action: any) => void) | null>(null);
+  const gameActionRef = useRef<((action: { type: string; [key: string]: unknown }) => void) | null>(null);
 
   const [state, setState] = useState<RoomState>({
     roomCode: null,
@@ -267,7 +269,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleCursorChange = useCallback((packId: string) => {
     setState((s) => ({ ...s, partnerCursorPack: packId }));
   }, []);
-  const handleGameAction = useCallback((action: any) => { gameActionRef.current?.(action); }, []);
+  const handleGameAction = useCallback((action: { type: string; [key: string]: unknown }) => { gameActionRef.current?.(action); }, []);
 
   const rt = useRealtimeRoom(state.roomCode, userId, {
     onPartnerJoin: handlePartnerJoin,
