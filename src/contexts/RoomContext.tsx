@@ -81,6 +81,7 @@ interface RoomState {
   lastPlaybackUpdate: number;
   hostOnlyControl: boolean;
   hostId: string | null;
+  activeGame: GameSession | null;
 }
 
 interface RoomContextType extends RoomState {
@@ -124,6 +125,9 @@ interface RoomContextType extends RoomState {
   setCursorOpacity: (opacity: number) => void;
   broadcastGameAction: (action: Record<string, unknown>) => void;
   onGameAction: React.MutableRefObject<((action: { type: string; [key: string]: unknown }) => void) | null>;
+  startGame: (gameType: GameType, initialState: any) => Promise<void>;
+  makeGameMove: (nextState: any, nextTurnId: string | null, winnerId: string | null) => Promise<void>;
+  resetActiveGame: (nextTurnId: string, initialState: any) => Promise<void>;
 }
 
 const RoomContext = createContext<RoomContextType | null>(null);
@@ -191,6 +195,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lastPlaybackUpdate: Date.now(),
     hostOnlyControl: true,
     hostId: null,
+    activeGame: null,
   });
 
   // Persist
@@ -391,6 +396,63 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     fetchRoom();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [coupleId]);
+
+  // Game session handling
+  useEffect(() => {
+    if (!coupleId) return;
+
+    const loadActiveGame = async () => {
+      const game = await gameService.getActiveGame(coupleId);
+      if (game) {
+        setState(s => ({ ...s, activeGame: game }));
+      }
+    };
+
+    loadActiveGame();
+
+    const channel = supabase
+      .channel(`game_sessions:${coupleId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_sessions",
+          filter: `couple_id=eq.${coupleId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            const game = payload.new as GameSession;
+            if (game.status === "active") {
+              setState(s => ({ ...s, activeGame: game }));
+              // Also trigger the legacy gameActionRef for components that rely on it
+              if (gameActionRef.current) {
+                // Determine action type based on changes
+                gameActionRef.current({ 
+                  type: "sync", 
+                  game: game.game_type,
+                  state: game.state,
+                  turn: game.current_turn_id,
+                  winner: game.winner_id,
+                  version: game.version
+                });
+              }
+            } else if (game.status === "finished" && !game.winner_id) {
+               // If it's finished without a winner, it might be a reset or manual end
+               setState(s => ({ ...s, activeGame: null }));
+            } else if (game.status === "finished" && game.winner_id) {
+               // Keep finished game for win animation
+               setState(s => ({ ...s, activeGame: game }));
+            }
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
