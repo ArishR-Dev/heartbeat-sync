@@ -54,8 +54,6 @@ export interface ScheduledDate {
 }
 
 interface RoomState {
-  roomCode: string | null;
-  partnerJoined: boolean;
   holdingHands: boolean;
   myHoldHands: boolean;
   partnerHoldHands: boolean;
@@ -66,7 +64,6 @@ interface RoomState {
   secretMessages: SecretMsg[];
   memories: Memory[];
   scheduledDates: ScheduledDate[];
-  partnerStatus: string;
   partnerActivity: string;
   partnerTyping: boolean;
   holdHandsRequest: string | null;
@@ -77,6 +74,9 @@ interface RoomState {
 }
 
 interface RoomContextType extends RoomState {
+  roomCode: string | null;
+  partnerJoined: boolean;
+  partnerStatus: string;
   connectionStatus: ConnectionStatus;
   isLoading: boolean;
   createRoom: () => Promise<void>;
@@ -110,30 +110,12 @@ interface RoomContextType extends RoomState {
   onGameAction: React.MutableRefObject<((action: { type: string; [key: string]: unknown }) => void) | null>;
 }
 
-type RoomGlobal = typeof globalThis & {
-  __pookiewatch_room_context__?: React.Context<RoomContextType | null>;
-};
-
-const roomGlobal = globalThis as RoomGlobal;
-const RoomContext = roomGlobal.__pookiewatch_room_context__ ?? createContext<RoomContextType | null>(null);
-RoomContext.displayName = "RoomContext";
-roomGlobal.__pookiewatch_room_context__ = RoomContext;
+const RoomContext = createContext<RoomContextType | null>(null);
 
 export const useRoom = () => {
   const ctx = useContext(RoomContext);
   if (!ctx) throw new Error("useRoom must be used within RoomProvider");
   return ctx;
-};
-
-const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-
-const generateUserId = () => {
-  let id = sessionStorage.getItem("pookie_user_id");
-  if (!id) {
-    id = crypto.randomUUID();
-    sessionStorage.setItem("pookie_user_id", id);
-  }
-  return id;
 };
 
 const getUserName = () => {
@@ -156,26 +138,15 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return presences[partner.id];
   }, [partner, presences]);
 
-  const userId = useRef(user?.id || crypto.randomUUID()).current;
+  const userId = user?.id || "anonymous";
   const [stateLoading, setStateLoading] = useState(false);
-  const { user } = useAuth();
-  const { coupleId, partner, pairingStatus, createInvite, joinCouple, leaveCouple, pairingCode } = useCouple();
-  const { presences } = usePresence(coupleId, user?.id, user);
 
-  const partnerPresence = useMemo(() => {
-    if (!partner) return null;
-    return presences[partner.id];
-  }, [partner, presences]);
-
-  const userId = useRef(user?.id || crypto.randomUUID()).current;
   const videoActionRef = useRef<((action: VideoAction) => void) | null>(null);
   const syncRequestRef = useRef<(() => void) | null>(null);
   const syncResponseRef = useRef<((state: VideoSyncState) => void) | null>(null);
   const gameActionRef = useRef<((action: { type: string; [key: string]: unknown }) => void) | null>(null);
 
   const [state, setState] = useState<RoomState>({
-    roomCode: null,
-    partnerJoined: false,
     holdingHands: false,
     myHoldHands: false,
     partnerHoldHands: false,
@@ -190,7 +161,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     scheduledDates: (() => {
       try { const s = localStorage.getItem("pookie_schedules"); return s ? JSON.parse(s) : []; } catch { return []; }
     })(),
-    partnerStatus: partnerPresence?.online_status || "offline",
     partnerActivity: "watching",
     partnerTyping: false,
     holdHandsRequest: null,
@@ -205,12 +175,12 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => { localStorage.setItem("pookie_schedules", JSON.stringify(state.scheduledDates)); }, [state.scheduledDates]);
 
   const handlePartnerJoin = useCallback(() => {
-    setState((s) => ({ ...s, partnerJoined: true }));
+    // Handled by pairingStatus in Phase 2
   }, []);
 
   const handlePartnerLeave = useCallback(() => {
     setState((s) => ({
-      ...s, partnerJoined: false, partnerCursor: null,
+      ...s, partnerCursor: null,
       partnerHoldHands: false, holdingHands: false, holdHandsRequest: null,
     }));
   }, []);
@@ -277,11 +247,8 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handlePresenceUpdate = useCallback((status: string) => {
-    // status can be "activity:xxx" or legacy status
     if (status.startsWith("activity:")) {
       setState((s) => ({ ...s, partnerActivity: status.replace("activity:", "") }));
-    } else {
-      setState((s) => ({ ...s, partnerStatus: status }));
     }
   }, []);
 
@@ -320,26 +287,22 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const handleCreateRoom = useCallback(async () => {
+    setStateLoading(true);
     await createInvite();
+    setStateLoading(false);
   }, [createInvite]);
 
   const handleJoinRoom = useCallback(async (code: string) => {
-    return await joinCouple(code);
+    setStateLoading(true);
+    const res = await joinCouple(code);
+    setStateLoading(false);
+    return res as { error?: string };
   }, [joinCouple]);
 
   const handleLeaveRoom = useCallback(async () => {
+    setStateLoading(true);
     await leaveCouple();
-    setState({
-      roomCode: null, partnerJoined: false, holdingHands: false, myHoldHands: false, partnerHoldHands: false,
-      moodTheme: "default", messages: [], reactions: [], partnerCursor: null, secretMessages: [],
-      memories: (() => { try { const s = localStorage.getItem("pookie_memories"); return s ? JSON.parse(s) : []; } catch { return []; } })(),
-      scheduledDates: (() => { try { const s = localStorage.getItem("pookie_schedules"); return s ? JSON.parse(s) : []; } catch { return []; } })(),
-      partnerStatus: "watching", partnerActivity: "watching", partnerTyping: false, holdHandsRequest: null,
-      myCursorPack: localStorage.getItem("pookie_cursor_pack") || "default",
-      partnerCursorPack: "default",
-      cursorSize: Number(localStorage.getItem("pookie_cursor_size")) || 32,
-      cursorOpacity: Number(localStorage.getItem("pookie_cursor_opacity")) || 1,
-    });
+    setStateLoading(false);
   }, [leaveCouple]);
 
   const toggleMyHoldHands = useCallback(() => {
@@ -451,8 +414,8 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         partnerStatus: partnerPresence?.online_status || "offline",
         connectionStatus: rt.connectionStatus,
         isLoading: stateLoading || coupleLoading,
-        createRoom: handleCreateRoom, 
-        joinRoom: handleJoinRoom, 
+        createRoom: handleCreateRoom,
+        joinRoom: handleJoinRoom,
         leaveRoom: handleLeaveRoom,
         toggleMyHoldHands, requestHoldHands, respondHoldHands,
         setMoodTheme, sendMessage,
