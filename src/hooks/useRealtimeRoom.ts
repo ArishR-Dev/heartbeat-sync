@@ -1,6 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useCallback, useState } from "react";
 
 export interface RealtimeEvents {
   onPartnerJoin: () => void;
@@ -62,123 +60,29 @@ export interface SchedulePayload {
 
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
 
+/**
+ * Frontend-only mock of the realtime hook.
+ * In this recovery version, we simulate a local environment.
+ */
 export function useRealtimeRoom(roomCode: string | null, userId: string, events: RealtimeEvents) {
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const [partnerPresent, setPartnerPresent] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
-  const eventsRef = useRef(events);
-  eventsRef.current = events;
-
-  useEffect(() => {
-    if (!roomCode) {
-      setConnectionStatus("disconnected");
-      return;
-    }
-
-    setConnectionStatus("connecting");
-
-    const channel = supabase.channel(`room:${roomCode}`, {
-      config: { presence: { key: userId } },
-    });
-
-    // Presence
-    channel.on("presence", { event: "sync" }, () => {
-      const state = channel.presenceState();
-      const users = Object.keys(state);
-      const hasPartner = users.length > 1;
-      setPartnerPresent(hasPartner);
-      if (hasPartner) {
-        // Store partner's username
-        const partnerKey = users.find(k => k !== userId);
-        if (partnerKey) {
-          const partnerData = state[partnerKey]?.[0] as { username?: string } | undefined;
-          if (partnerData?.username) {
-            try { localStorage.setItem("pookie_partner_name", partnerData.username); } catch (error) {
-              console.error("useRealtimeRoom partner name save error:", error);
-            }
-          }
-        }
-        eventsRef.current.onPartnerJoin();
-      }
-    });
-
-    channel.on("presence", { event: "leave" }, ({ key }) => {
-      if (key !== userId) {
-        setPartnerPresent(false);
-        eventsRef.current.onPartnerLeave();
-      }
-    });
-
-    // All broadcast listeners
-    const broadcastEvents: [string, (payload: { sender: string; [key: string]: any }) => void][] = [
-      ["chat", (p) => { if (p.sender !== userId) eventsRef.current.onChatMessage(p as any); }],
-      ["reaction", (p) => { if (p.sender !== userId) eventsRef.current.onReaction(p.emoji); }],
-      ["video", (p) => { if (p.sender !== userId) eventsRef.current.onVideoAction(p.action); }],
-      ["cursor", (p) => { if (p.sender !== userId) eventsRef.current.onCursorMove(p.pos); }],
-      ["holdhands", (p) => { if (p.sender !== userId) eventsRef.current.onHoldHands(p.holding); }],
-      ["holdhands_request", (p) => { if (p.sender !== userId) eventsRef.current.onHoldHandsRequest(p.fromUser); }],
-      ["holdhands_response", (p) => { if (p.sender !== userId) eventsRef.current.onHoldHandsResponse(p.accepted); }],
-      ["secret_message", (p) => { if (p.sender !== userId) eventsRef.current.onSecretMessage(p.msg); }],
-      ["memory_add", (p) => { if (p.sender !== userId) eventsRef.current.onMemoryAdd(p.memory); }],
-      ["memory_remove", (p) => { if (p.sender !== userId) eventsRef.current.onMemoryRemove(p.id); }],
-      ["schedule_add", (p) => { if (p.sender !== userId) eventsRef.current.onScheduleAdd(p.schedule); }],
-      ["schedule_remove", (p) => { if (p.sender !== userId) eventsRef.current.onScheduleRemove(p.id); }],
-      ["presence_status", (p) => { if (p.sender !== userId) eventsRef.current.onPresenceUpdate(p.status); }],
-      ["typing", (p) => { if (p.sender !== userId) eventsRef.current.onTypingIndicator(p.typing); }],
-      ["sync_request", (p) => { if (p.sender !== userId) eventsRef.current.onSyncRequest(); }],
-      ["sync_response", (p) => { if (p.sender !== userId) eventsRef.current.onSyncResponse(p.state); }],
-      ["cursor_change", (p) => { if (p.sender !== userId) eventsRef.current.onCursorChange(p.packId); }],
-      ["game_action", (p) => { if (p.sender !== userId) eventsRef.current.onGameAction(p.action); }],
-    ];
-
-    broadcastEvents.forEach(([event, handler]) => {
-      channel.on("broadcast", { event }, ({ payload }) => handler(payload));
-    });
-
-    // Get username for presence
-    let username = "Pookie";
-    try {
-      const saved = localStorage.getItem("pookie_user");
-      if (saved) username = JSON.parse(saved).username || "Pookie";
-    } catch (error) {
-      console.error("useRealtimeRoom username error:", error);
-    }
-
-    channel.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        setConnectionStatus("connected");
-        await channel.track({ user_id: userId, username, online_at: new Date().toISOString() });
-      } else if (status === "CLOSED") {
-        setConnectionStatus("disconnected");
-      } else if (status === "CHANNEL_ERROR") {
-        setConnectionStatus("reconnecting");
-      }
-    });
-
-    channelRef.current = channel;
-
-    return () => {
-      channel.unsubscribe();
-      channelRef.current = null;
-      setConnectionStatus("disconnected");
-    };
-  }, [roomCode, userId]);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
+    roomCode ? "connected" : "disconnected"
+  );
 
   const broadcast = useCallback(
     (event: string, payload: Record<string, unknown>) => {
-      channelRef.current?.send({
-        type: "broadcast",
-        event,
-        payload: { ...payload, sender: userId },
-      });
+      console.log(`[Mock Realtime] Broadcast ${event}`, payload);
+      // In local-only mode, we don't have anyone to broadcast to.
     },
-    [userId]
+    []
   );
 
   const sendChat = useCallback(
     (id: string, text: string) => broadcast("chat", { id, text, sender: userId }),
     [broadcast, userId]
   );
+  
   const sendReaction = useCallback((emoji: string) => broadcast("reaction", { emoji }), [broadcast]);
   const sendVideoAction = useCallback((action: VideoAction) => broadcast("video", { action }), [broadcast]);
   const sendCursor = useCallback((x: number, y: number) => broadcast("cursor", { pos: { x, y } }), [broadcast]);

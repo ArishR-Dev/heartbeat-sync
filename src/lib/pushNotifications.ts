@@ -7,16 +7,8 @@ const isPreviewHost =
   window.location.hostname.includes("lovableproject.com");
 
 export async function registerPushSW(): Promise<ServiceWorkerRegistration | null> {
-  if (isInIframe || isPreviewHost) return null;
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
-
-  try {
-    const reg = await navigator.serviceWorker.register("/sw-push.js", { scope: "/" });
-    return reg;
-  } catch (err) {
-    console.warn("Push SW registration failed:", err);
-    return null;
-  }
+  // Push notifications disabled in frontend-only recovery
+  return null;
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {

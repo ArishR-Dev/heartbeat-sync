@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface User {
   id: string;
@@ -19,14 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-type AuthGlobal = typeof globalThis & {
-  __pookiewatch_auth_context__?: React.Context<AuthContextType | null>;
-};
-
-const authGlobal = globalThis as AuthGlobal;
-const AuthContext = authGlobal.__pookiewatch_auth_context__ ?? createContext<AuthContextType | null>(null);
-AuthContext.displayName = "AuthContext";
-authGlobal.__pookiewatch_auth_context__ = AuthContext;
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
@@ -36,88 +27,73 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const mapSupabaseUser = useCallback((u: SupabaseUser): User => {
-    const username =
-      (u.user_metadata?.username as string | undefined) ||
-      (u.user_metadata?.full_name as string | undefined) ||
-      (u.email?.split("@")[0] ?? "pookie");
-    return {
-      id: u.id,
-      username,
-      email: u.email ?? "",
-      avatar: "🐱",
-      gender: (u.user_metadata?.gender as "male" | "female" | undefined) || undefined,
-    };
-  }, []);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsLoading(true);
-    void supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ? mapSupabaseUser(data.session.user) : null);
-      setIsLoading(false);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? mapSupabaseUser(session.user) : null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [mapSupabaseUser]);
+    const savedUser = localStorage.getItem("pookie_user");
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Failed to parse saved user", e);
+      }
+    }
+    setIsLoading(false);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const mockUser: User = {
+      id: crypto.randomUUID(),
+      username: email.split("@")[0] || "Pookie",
+      email,
+      avatar: "🐱",
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem("pookie_user", JSON.stringify(mockUser));
     setIsLoading(false);
-    if (error) throw error;
-    if (data.user) setUser(mapSupabaseUser(data.user));
-  }, [mapSupabaseUser]);
+  }, []);
 
   const register = useCallback(async (username: string, email: string, password: string, avatar: string, gender?: string) => {
     setIsLoading(true);
-    const { data, error } = await supabase.auth.signUp({
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockUser: User = {
+      id: crypto.randomUUID(),
+      username,
       email,
-      password,
-      options: {
-        data: {
-          username,
-          avatar,
-          gender,
-        },
-      },
-    });
+      avatar,
+      gender: gender as "male" | "female" | undefined,
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem("pookie_user", JSON.stringify(mockUser));
     setIsLoading(false);
-    if (error) throw error;
-    if (data.user) {
-      if (data.session) {
-        setUser(mapSupabaseUser(data.user));
-      } else {
-        // This handles the case where email verification is required and auto-confirm is off
-        throw new Error("Please check your email to verify your account before logging in.");
-      }
-    }
-  }, [mapSupabaseUser]);
+  }, []);
 
   const signInWithGoogle = useCallback(async () => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      },
-    });
-    if (error) {
-      setIsLoading(false);
-      throw error;
-    }
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const mockUser: User = {
+      id: crypto.randomUUID(),
+      username: "Google Pookie",
+      email: "google@pookie.com",
+      avatar: "🦄",
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem("pookie_user", JSON.stringify(mockUser));
+    setIsLoading(false);
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
     setUser(null);
+    localStorage.removeItem("pookie_user");
   }, []);
 
   return (
