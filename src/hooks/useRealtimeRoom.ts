@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 export interface RealtimeEvents {
   onPartnerJoin: () => void;
   onPartnerLeave: () => void;
-  onChatMessage: (msg: { id: string; text: string; sender: string }) => void;
+  onChatMessage: (msg: any) => void;
   onReaction: (emoji: string) => void;
   onVideoAction: (action: VideoAction) => void;
   onCursorMove: (pos: { x: number; y: number }) => void;
