@@ -7,12 +7,22 @@ import { useNavigate } from "react-router-dom";
 
 const RoomLobby = () => {
   const { user, logout } = useAuth();
-  const { createRoom, joinRoom } = useRoom();
+  const { createRoom, joinRoom, isLoading } = useRoom();
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateRoom = () => {
-    createRoom();
+  const handleCreateRoom = async () => {
+    setError(null);
+    await createRoom();
+  };
+
+  const handleJoinRoom = async () => {
+    setError(null);
+    const result = await joinRoom(joinCode);
+    if (result && 'error' in result && result.error) {
+      setError(result.error);
+    }
   };
 
   const handleLogout = async () => {
@@ -78,7 +88,8 @@ const RoomLobby = () => {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={handleCreateRoom}
-            className="w-full py-5 px-6 rounded-pookie pookie-gradient text-primary-foreground flex items-center gap-4 pookie-glow shadow-xl"
+            disabled={isLoading}
+            className="w-full py-5 px-6 rounded-pookie pookie-gradient text-primary-foreground flex items-center gap-4 pookie-glow shadow-xl disabled:opacity-50"
           >
             <div className="p-2 rounded-full bg-white/20">
               <Heart size={20} />
@@ -112,12 +123,13 @@ const RoomLobby = () => {
             </div>
             <motion.button
               whileTap={{ scale: 0.98 }}
-              onClick={() => joinCode.length === 6 && joinRoom(joinCode)}
-              disabled={joinCode.length !== 6}
+              onClick={handleJoinRoom}
+              disabled={joinCode.length !== 6 || isLoading}
               className="w-full py-3.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold text-sm disabled:opacity-40 transition-colors"
             >
-              Join Room
+              {isLoading ? "Joining..." : "Join Room"}
             </motion.button>
+            {error && <p className="text-xs text-destructive text-center mt-2 px-2">{error}</p>}
           </div>
         </motion.div>
       </div>

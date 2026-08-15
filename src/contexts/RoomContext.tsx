@@ -1,4 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./AuthContext";
+import { useCouple } from "./CoupleContext";
+import { usePresence } from "@/hooks/usePresence";
 import {
   useRealtimeRoom,
   type VideoAction,
@@ -142,7 +146,16 @@ const getUserName = () => {
 };
 
 export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const userId = useRef(generateUserId()).current;
+  const { user } = useAuth();
+  const { coupleId, partner, pairingStatus, createInvite, joinCouple, leaveCouple, pairingCode } = useCouple();
+  const { presences } = usePresence(coupleId, user?.id, user);
+
+  const partnerPresence = useMemo(() => {
+    if (!partner) return null;
+    return presences[partner.id];
+  }, [partner, presences]);
+
+  const userId = useRef(user?.id || crypto.randomUUID()).current;
   const videoActionRef = useRef<((action: VideoAction) => void) | null>(null);
   const syncRequestRef = useRef<(() => void) | null>(null);
   const syncResponseRef = useRef<((state: VideoSyncState) => void) | null>(null);
@@ -165,7 +178,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     scheduledDates: (() => {
       try { const s = localStorage.getItem("pookie_schedules"); return s ? JSON.parse(s) : []; } catch { return []; }
     })(),
-    partnerStatus: "watching",
+    partnerStatus: partnerPresence?.online_status || "offline",
     partnerActivity: "watching",
     partnerTyping: false,
     holdHandsRequest: null,
@@ -271,7 +284,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   const handleGameAction = useCallback((action: { type: string; [key: string]: unknown }) => { gameActionRef.current?.(action); }, []);
 
-  const rt = useRealtimeRoom(state.roomCode, userId, {
+  const rt = useRealtimeRoom(coupleId, userId, {
     onPartnerJoin: handlePartnerJoin,
     onPartnerLeave: handlePartnerLeave,
     onChatMessage: handleChatMessage,
@@ -294,10 +307,16 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     onGameAction: handleGameAction,
   });
 
-  const createRoom = useCallback(() => setState((s) => ({ ...s, roomCode: generateCode(), partnerJoined: false })), []);
-  const joinRoom = useCallback((code: string) => setState((s) => ({ ...s, roomCode: code.toUpperCase(), partnerJoined: false })), []);
+  const handleCreateRoom = useCallback(async () => {
+    await createInvite();
+  }, [createInvite]);
 
-  const leaveRoom = useCallback(() => {
+  const handleJoinRoom = useCallback(async (code: string) => {
+    return await joinCouple(code);
+  }, [joinCouple]);
+
+  const handleLeaveRoom = useCallback(async () => {
+    await leaveCouple();
     setState({
       roomCode: null, partnerJoined: false, holdingHands: false, myHoldHands: false, partnerHoldHands: false,
       moodTheme: "default", messages: [], reactions: [], partnerCursor: null, secretMessages: [],
@@ -309,7 +328,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cursorSize: Number(localStorage.getItem("pookie_cursor_size")) || 32,
       cursorOpacity: Number(localStorage.getItem("pookie_cursor_opacity")) || 1,
     });
-  }, []);
+  }, [leaveCouple]);
 
   const toggleMyHoldHands = useCallback(() => {
     setState((s) => {
@@ -415,8 +434,13 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <RoomContext.Provider
       value={{
         ...state,
+        roomCode: pairingCode,
+        partnerJoined: pairingStatus === "paired",
+        partnerStatus: partnerPresence?.online_status || "offline",
         connectionStatus: rt.connectionStatus,
-        createRoom, joinRoom, leaveRoom,
+        createRoom: handleCreateRoom, 
+        joinRoom: handleJoinRoom, 
+        leaveRoom: handleLeaveRoom,
         toggleMyHoldHands, requestHoldHands, respondHoldHands,
         setMoodTheme, sendMessage,
         sendReaction: sendReactionLocal,
