@@ -129,16 +129,26 @@ const GamePanel = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06, ease: [0.4, 0, 0.2, 1] }}
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ 
+                scale: 1.05, 
+                rotate: i % 2 === 0 ? 1 : -1,
+                boxShadow: "0 8px 30px hsl(var(--primary) / 0.15)"
+              }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => sendInvite(g.id)}
               disabled={!!waitingAccept}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl glass border border-border/20 hover:border-primary/30 transition-all duration-200 text-left disabled:opacity-50 card-interactive"
+              className="group flex items-center gap-3 px-4 py-3 rounded-xl glass border border-border/20 hover:border-primary/40 transition-all duration-300 text-left disabled:opacity-50"
             >
-              <span className="text-xl">{g.emoji}</span>
+              <motion.span 
+                className="text-2xl"
+                whileHover={{ rotate: [0, 20, -20, 0] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              >
+                {g.emoji}
+              </motion.span>
               <div>
-                <p className="text-sm font-semibold text-foreground leading-tight">{g.label}</p>
-                <p className="text-[10px] text-muted-foreground">{g.desc}</p>
+                <p className="text-sm font-semibold text-foreground leading-tight group-hover:text-primary transition-colors">{g.label}</p>
+                <p className="text-[10px] text-muted-foreground group-hover:text-foreground/70 transition-colors">{g.desc}</p>
               </div>
             </motion.button>
           ))}

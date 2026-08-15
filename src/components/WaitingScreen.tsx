@@ -21,10 +21,16 @@ const WaitingScreen = () => {
       animate={{ opacity: 1, scale: 1 }}
       className="flex-1 flex items-center justify-center"
     >
-      <div className="glass-strong rounded-3xl border-2 border-dashed border-border p-12 text-center max-w-lg w-full space-y-5">
+      <div className="glass-strong rounded-pookie border-2 border-dashed border-primary/30 p-12 text-center max-w-lg w-full space-y-6 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 pookie-gradient animate-shimmer" />
         {/* Avatar icon */}
-        <div className="mx-auto w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-          <UserPlus size={32} className="text-muted-foreground" />
+        <div className="mx-auto w-24 h-24 rounded-full bg-primary/5 flex items-center justify-center border-4 border-primary/20 pookie-glow">
+          <motion.div
+            animate={{ rotate: [0, 15, -15, 0] }}
+            transition={{ duration: 4, repeat: Infinity }}
+          >
+            <UserPlus size={40} className="text-primary" />
+          </motion.div>
         </div>
 
         {/* Room code */}
@@ -36,7 +42,7 @@ const WaitingScreen = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="w-9 h-10 flex items-center justify-center rounded-lg bg-muted text-foreground font-mono font-bold text-lg"
+                className="w-10 h-12 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/20 font-mono font-black text-xl shadow-inner"
               >
                 {ch}
               </motion.span>

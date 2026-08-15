@@ -5,22 +5,26 @@ import { Send, Smile } from "lucide-react";
 
 const EMOJIS = ["❤️", "😘", "🫂", "💕", "🥺", "😍", "🫶", "💖"];
 
-const ChatBubble = memo(({ msg }: { msg: { id: string; sender: "me" | "partner"; text: string } }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-    className={`flex ${msg.sender === "me" ? "justify-end" : "justify-start"}`}
-  >
-    <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-      msg.sender === "me"
-        ? "pookie-gradient text-primary-foreground rounded-br-md"
-        : "bg-muted/60 text-foreground rounded-bl-md"
-    }`}>
-      {msg.text}
-    </div>
-  </motion.div>
-));
+const ChatBubble = memo(({ msg }: { msg: { id: string; sender: "me" | "partner"; text: string } }) => {
+  const isEmojiOnly = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])+$/.test(msg.text.trim());
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: msg.sender === "me" ? 20 : -20, scale: 0.8 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className={`flex ${msg.sender === "me" ? "justify-end" : "justify-start"}`}
+    >
+      <div className={`${isEmojiOnly ? "text-4xl px-1 py-1 bg-transparent shadow-none" : "max-w-[75%] px-3 py-2 rounded-2xl text-sm shadow-sm"} leading-relaxed ${
+        !isEmojiOnly && (msg.sender === "me"
+          ? "pookie-gradient text-primary-foreground rounded-br-md"
+          : "bg-muted/70 text-foreground rounded-bl-md")
+      }`}>
+        {msg.text}
+      </div>
+    </motion.div>
+  );
+});
 ChatBubble.displayName = "ChatBubble";
 
 const ChatPanel = () => {
