@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { useCouple } from "./CoupleContext";
 import { usePresence } from "@/hooks/usePresence";
 import { chatService } from "@/lib/services/chatService";
+import { toast } from "@/hooks/use-toast";
 import {
   useRealtimeRoom,
   type VideoAction,
@@ -72,15 +73,28 @@ interface RoomState {
   partnerCursorPack: string;
   cursorSize: number;
   cursorOpacity: number;
+  // Video Shared State
+  mediaUrl: string | null;
+  isPlaying: boolean;
+  playbackPosition: number;
+  lastPlaybackUpdate: number;
+  hostOnlyControl: boolean;
+  hostId: string | null;
 }
 
 interface RoomContextType extends RoomState {
   roomCode: string | null;
   partnerJoined: boolean;
-  partnerStatus: string;
-  connectionStatus: ConnectionStatus;
-  isLoading: boolean;
-  createRoom: () => Promise<void>;
+    partnerStatus: string;
+    connectionStatus: ConnectionStatus;
+    isLoading: boolean;
+    mediaUrl: string | null;
+    isPlaying: boolean;
+    playbackPosition: number;
+    lastPlaybackUpdate: number;
+    hostOnlyControl: boolean;
+    hostId: string | null;
+    createRoom: () => Promise<void>;
   joinRoom: (code: string) => Promise<{ error?: string }>;
   leaveRoom: () => Promise<void>;
   toggleMyHoldHands: () => void;
@@ -169,6 +183,13 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     partnerCursorPack: "default",
     cursorSize: Number(localStorage.getItem("pookie_cursor_size")) || 32,
     cursorOpacity: Number(localStorage.getItem("pookie_cursor_opacity")) || 1,
+    // Video Shared State
+    mediaUrl: null,
+    isPlaying: false,
+    playbackPosition: 0,
+    lastPlaybackUpdate: Date.now(),
+    hostOnlyControl: true,
+    hostId: null,
   });
 
   // Persist
@@ -304,6 +325,76 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [coupleId, userId, handleChatMessage]);
 
+  useEffect(() => {
+    if (!coupleId) return;
+
+    const channel = supabase
+      .channel(`room_state:${coupleId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rooms",
+          filter: `couple_id=eq.${coupleId}`,
+        },
+        (payload: any) => {
+          const newRoom = payload.new;
+          setState((s) => ({
+            ...s,
+            mediaUrl: newRoom.media_url,
+            isPlaying: newRoom.is_playing,
+            playbackPosition: newRoom.position,
+            lastPlaybackUpdate: new Date(newRoom.updated_at).getTime(),
+            hostId: newRoom.host_id,
+            moodTheme: newRoom.mood_theme || s.moodTheme,
+          }));
+          
+          // Trigger local video sync
+          if (videoActionRef.current) {
+            // Calculate drift-corrected time
+            const now = Date.now();
+            const elapsed = newRoom.is_playing ? (now - new Date(newRoom.updated_at).getTime()) / 1000 : 0;
+            const targetTime = newRoom.position + elapsed;
+            
+            videoActionRef.current({
+              type: newRoom.is_playing ? "play" : "pause",
+              time: targetTime,
+              url: newRoom.media_url,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    const fetchRoom = async () => {
+      const { data } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("couple_id", coupleId)
+        .eq("is_active", true)
+        .single();
+      
+      if (data) {
+        setState(s => ({
+          ...s,
+          mediaUrl: data.media_url,
+          isPlaying: data.is_playing,
+          playbackPosition: data.position,
+          lastPlaybackUpdate: new Date(data.updated_at).getTime(),
+          hostId: data.host_id,
+          moodTheme: data.mood_theme || s.moodTheme,
+        }));
+      }
+    };
+
+    fetchRoom();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [coupleId]);
+
   const handleCursorChange = useCallback((packId: string) => {
     setState((s) => ({ ...s, partnerCursorPack: packId }));
   }, []);
@@ -374,6 +465,44 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setState((s) => ({ ...s, holdHandsRequest: null }));
     }
   }, [rt]);
+
+  const broadcastVideoAction = useCallback(async (action: VideoAction) => {
+    if (!coupleId) return;
+    
+    // Check host control
+    if (state.hostOnlyControl && state.hostId && state.hostId !== userId) {
+      toast({
+        title: "Host only control",
+        description: "Only the host can control the video right now.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Map VideoAction to room update
+    const update: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (action.type === "play" || action.type === "pause") {
+      update.is_playing = action.type === "play";
+      if (action.time !== undefined) update.position = action.time;
+    } else if (action.type === "seek" && action.time !== undefined) {
+      update.position = action.time;
+      update.is_playing = state.isPlaying;
+    } else if (action.type === "load" && action.url) {
+      update.media_url = action.url;
+      update.position = 0;
+      update.is_playing = true;
+    }
+
+    const { error } = await supabase
+      .from("rooms")
+      .update(update)
+      .eq("couple_id", coupleId);
+      
+    if (error) console.error("Failed to broadcast video action:", error);
+  }, [coupleId, userId, state.hostOnlyControl, state.hostId, state.isPlaying]);
 
   const setMoodTheme = useCallback((theme: MoodTheme) => setState((s) => ({ ...s, moodTheme: theme })), []);
 
@@ -482,7 +611,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleMyHoldHands, requestHoldHands, respondHoldHands,
         setMoodTheme, sendMessage,
         sendReaction: sendReactionLocal,
-        broadcastVideoAction: rt.sendVideoAction,
+        broadcastVideoAction,
         broadcastCursor: rt.sendCursor,
         onVideoAction: videoActionRef,
         onSyncRequest: syncRequestRef,
