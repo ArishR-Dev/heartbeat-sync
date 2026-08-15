@@ -47,7 +47,7 @@ const tabTransition = { duration: 0.2, ease: [0.4, 0, 0.2, 1] as const };
 const RoomPage = () => {
   const {
     roomCode, partnerJoined, leaveRoom, joinRoom,
-    requestHoldHands, myHoldHands, holdingHands, moodTheme,
+    requestHoldHands, toggleMyHoldHands, myHoldHands, holdingHands, moodTheme,
     partnerStatus, partnerActivity, partnerTyping,
     connectionStatus, addMemory, secretMessages, broadcastActivity,
   } = useRoom();
@@ -184,7 +184,7 @@ const RoomPage = () => {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                    onClick={requestHoldHands}
+                    onClick={holdingHands ? toggleMyHoldHands : requestHoldHands}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors duration-300 ${
                       myHoldHands ? "pookie-gradient text-primary-foreground pookie-glow" : "glass text-foreground hover:bg-muted/50"
                     }`}
