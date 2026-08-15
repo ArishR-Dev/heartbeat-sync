@@ -113,7 +113,7 @@ export const CoupleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const createInvite = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.rpc("get_or_create_invite" as any);
+    const { data, error } = await supabase.rpc("get_or_create_invite" as never);
     if (error) {
       console.error("Error creating invite:", error);
     }
@@ -123,7 +123,7 @@ export const CoupleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const joinCouple = useCallback(async (code: string) => {
     setIsLoading(true);
-    const { data, error } = await supabase.rpc("join_couple_by_code" as any, { _pairing_code: code });
+    const { data, error } = await supabase.rpc("join_couple_by_code" as never, { _pairing_code: code } as any);
     
     if (error) {
       setIsLoading(false);
