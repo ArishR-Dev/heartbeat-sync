@@ -78,7 +78,7 @@ const RoomLobby = () => {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={handleCreateRoom}
-            className="w-full py-5 px-6 rounded-2xl pookie-gradient text-primary-foreground flex items-center gap-4 pookie-glow shadow-xl"
+            className="w-full py-5 px-6 rounded-pookie pookie-gradient text-primary-foreground flex items-center gap-4 pookie-glow shadow-xl"
           >
             <div className="p-2 rounded-full bg-white/20">
               <Heart size={20} />
@@ -98,7 +98,7 @@ const RoomLobby = () => {
           </div>
 
           {/* Join Room */}
-          <div className="glass-strong rounded-2xl p-1 space-y-1">
+          <div className="glass-strong rounded-pookie p-1 space-y-1">
             <div className="relative">
               <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input

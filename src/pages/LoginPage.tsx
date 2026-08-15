@@ -107,7 +107,7 @@ const LoginPage = () => {
           <p className="text-muted-foreground text-sm">Watch together, love forever 💕</p>
         </div>
 
-        <div className="glass-strong rounded-3xl p-8 pookie-glow">
+        <div className="glass-strong rounded-pookie p-8 pookie-glow">
           <h2 className="text-xl font-bold text-foreground mb-6">
             {isRegister ? "Create your account ✨" : "Welcome back, pookie 💖"}
           </h2>
