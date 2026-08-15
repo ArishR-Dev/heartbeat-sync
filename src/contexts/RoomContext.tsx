@@ -78,9 +78,10 @@ interface RoomState {
 
 interface RoomContextType extends RoomState {
   connectionStatus: ConnectionStatus;
-  createRoom: () => void;
-  joinRoom: (code: string) => void;
-  leaveRoom: () => void;
+  isLoading: boolean;
+  createRoom: () => Promise<void>;
+  joinRoom: (code: string) => Promise<{ error?: string }>;
+  leaveRoom: () => Promise<void>;
   toggleMyHoldHands: () => void;
   requestHoldHands: () => void;
   respondHoldHands: (accepted: boolean) => void;
@@ -146,6 +147,17 @@ const getUserName = () => {
 };
 
 export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const { coupleId, partner, pairingStatus, createInvite, joinCouple, leaveCouple, pairingCode, isLoading: coupleLoading } = useCouple();
+  const { presences } = usePresence(coupleId, user?.id, user);
+
+  const partnerPresence = useMemo(() => {
+    if (!partner) return null;
+    return presences[partner.id];
+  }, [partner, presences]);
+
+  const userId = useRef(user?.id || crypto.randomUUID()).current;
+  const [stateLoading, setStateLoading] = useState(false);
   const { user } = useAuth();
   const { coupleId, partner, pairingStatus, createInvite, joinCouple, leaveCouple, pairingCode } = useCouple();
   const { presences } = usePresence(coupleId, user?.id, user);
@@ -438,6 +450,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         partnerJoined: pairingStatus === "paired",
         partnerStatus: partnerPresence?.online_status || "offline",
         connectionStatus: rt.connectionStatus,
+        isLoading: stateLoading || coupleLoading,
         createRoom: handleCreateRoom, 
         joinRoom: handleJoinRoom, 
         leaveRoom: handleLeaveRoom,

@@ -50,7 +50,6 @@ const RoomPage = () => {
     requestHoldHands, myHoldHands, holdingHands, moodTheme,
     partnerStatus, partnerActivity, partnerTyping,
     connectionStatus, addMemory, secretMessages, broadcastActivity,
-    leaveRoom,
   } = useRoom();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("chat");

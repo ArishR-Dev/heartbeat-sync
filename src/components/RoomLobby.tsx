@@ -19,7 +19,7 @@ const RoomLobby = () => {
 
   const handleJoinRoom = async () => {
     setError(null);
-    const result = await joinRoom(joinCode);
+    const result = await joinRoom(joinCode) as { error?: string };
     if (result && 'error' in result && result.error) {
       setError(result.error);
     }
