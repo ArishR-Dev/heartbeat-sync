@@ -660,6 +660,36 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     rt.sendGameAction(action);
   }, [rt]);
 
+  const startGame = useCallback(async (gameType: GameType, initialState: any) => {
+    if (!coupleId || !user || !partner) return;
+    const game = await gameService.startGame(coupleId, gameType, user.id, partner.id, initialState);
+    if (game) {
+      setState(s => ({ ...s, activeGame: game }));
+    }
+  }, [coupleId, user, partner]);
+
+  const makeGameMove = useCallback(async (nextState: any, nextTurnId: string | null, winnerId: string | null) => {
+    if (!state.activeGame || !user) return;
+    const success = await gameService.makeMove(
+      state.activeGame.id,
+      user.id,
+      nextState,
+      nextTurnId,
+      winnerId,
+      state.activeGame.version
+    );
+    if (!success) {
+      // Re-fetch state if update failed (likely version mismatch)
+      const game = await gameService.getActiveGame(coupleId!);
+      if (game) setState(s => ({ ...s, activeGame: game }));
+    }
+  }, [state.activeGame, user, coupleId]);
+
+  const resetActiveGame = useCallback(async (nextTurnId: string, initialState: any) => {
+    if (!state.activeGame) return;
+    await gameService.resetGame(state.activeGame.id, nextTurnId, initialState);
+  }, [state.activeGame]);
+
   return (
     <RoomContext.Provider
       value={{
@@ -687,6 +717,9 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMyCursorPack, setCursorSize, setCursorOpacity,
         broadcastGameAction,
         onGameAction: gameActionRef,
+        startGame,
+        makeGameMove,
+        resetActiveGame,
       }}
     >
       {children}
