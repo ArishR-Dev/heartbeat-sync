@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      memories: {
+        Row: {
+          created_at: string | null
+          date: string
+          emoji: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          emoji: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          emoji?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string | null
@@ -35,6 +62,66 @@ export type Database = {
           room_code?: string
           text?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      schedules: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          time: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          time: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          time?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      secret_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          receiver_id: string | null
+          reveal_type: string
+          revealed: boolean | null
+          sender_id: string
+          text: string
+          timer_seconds: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          receiver_id?: string | null
+          reveal_type: string
+          revealed?: boolean | null
+          sender_id: string
+          text: string
+          timer_seconds?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          receiver_id?: string | null
+          reveal_type?: string
+          revealed?: boolean | null
+          sender_id?: string
+          text?: string
+          timer_seconds?: number | null
         }
         Relationships: []
       }
