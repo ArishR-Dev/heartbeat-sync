@@ -121,6 +121,25 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Completely hide the Lovable badge */
+  .lovable-badge, 
+  #lovable-badge,
+  [class*="lovable-badge"],
+  [id*="lovable-badge"],
+  a[href*="lovable.app"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
 }
 
 @layer components {
