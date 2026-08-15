@@ -187,21 +187,19 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleChatMessage = useCallback((msg: { id: string; content: string; sender_id: string; created_at?: string }) => {
     setState((s) => {
-      // Deduplicate: check if message ID already exists
       if (s.messages.some(m => m.id === msg.id)) return s;
       
-      const isMe = msg.sender_id === userId;
+      const sender: "me" | "partner" = msg.sender_id === userId ? "me" : "partner";
+      const newMsg: ChatMessage = { 
+        id: msg.id, 
+        sender, 
+        text: msg.content, 
+        timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now() 
+      };
+      
       return { 
         ...s, 
-        messages: [
-          ...s.messages, 
-          { 
-            id: msg.id, 
-            sender: isMe ? "me" : "partner", 
-            text: msg.content, 
-            timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now() 
-          }
-        ] 
+        messages: [...s.messages, newMsg] 
       };
     });
   }, [userId]);
@@ -283,7 +281,7 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadHistory = async () => {
       try {
         const history = await chatService.fetchMessages(coupleId);
-        const formattedMessages = history.map((m: any) => ({
+        const formattedMessages: ChatMessage[] = history.map((m: any) => ({
           id: m.id,
           sender: m.sender_id === userId ? "me" : "partner",
           text: m.content,
