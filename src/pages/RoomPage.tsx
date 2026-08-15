@@ -17,6 +17,7 @@ import GamePanel from "@/components/games/GamePanel";
 import ScheduleBanner from "@/components/ScheduleBanner";
 import CozyMode from "@/components/CozyMode";
 import WatchAnalytics from "@/components/WatchAnalytics";
+import InteractiveEggs from "@/components/InteractiveEggs";
 import { Copy, LogOut, Hand, Heart, MessageSquare, Gamepad2, Lock, Film, CalendarHeart, MousePointer2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -109,6 +110,7 @@ const RoomPage = () => {
       <HoldHandsOverlay />
       <SharedCursors />
       <ScheduleBanner />
+      <InteractiveEggs />
 
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-border/20">
