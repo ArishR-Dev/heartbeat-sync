@@ -72,6 +72,8 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        '3xl': '2rem',
+        'pookie': '2.5rem',
       },
       keyframes: {
         "accordion-down": {

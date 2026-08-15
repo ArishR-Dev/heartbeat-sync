@@ -205,7 +205,7 @@ const RoomPage = () => {
 
               {/* Right - Premium Panel */}
               <div
-                className="w-full lg:w-[340px] shrink-0 flex flex-col rounded-2xl overflow-hidden"
+                className="w-full lg:w-[340px] shrink-0 flex flex-col rounded-pookie overflow-hidden"
                 style={{
                   background: "hsl(var(--card) / 0.88)",
                   backdropFilter: "blur(28px) saturate(1.5)",
