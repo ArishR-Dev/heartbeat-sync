@@ -19,6 +19,7 @@ const LoginPage = () => {
   const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const passwordStrength = (() => {
     if (password.length === 0) return 0;
@@ -46,14 +47,17 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
+    setSuccessMessage("");
     if (!validate()) return;
     try {
       if (isRegister) {
         await register(username, email, password, avatar, gender);
+        setSuccessMessage("Account created! Please check your email to verify your account.");
+        setIsRegister(false);
       } else {
         await login(email, password);
+        navigate("/");
       }
-      navigate("/");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Authentication failed";
       setAuthError(message);
@@ -264,6 +268,10 @@ const LoginPage = () => {
 
           {authError && (
             <p className="text-destructive text-xs mt-3 text-center">{authError}</p>
+          )}
+
+          {successMessage && (
+            <p className="text-green-400 text-xs mt-3 text-center">{successMessage}</p>
           )}
 
           <p className="text-center text-sm text-muted-foreground mt-6">
