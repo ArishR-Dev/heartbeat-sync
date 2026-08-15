@@ -376,14 +376,15 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       if (data) {
+        const room = data as any;
         setState(s => ({
           ...s,
-          mediaUrl: data.media_url,
-          isPlaying: data.is_playing,
-          playbackPosition: data.position,
-          lastPlaybackUpdate: new Date(data.updated_at).getTime(),
-          hostId: data.host_id,
-          moodTheme: data.mood_theme || s.moodTheme,
+          mediaUrl: room.media_url || null,
+          isPlaying: !!room.is_playing,
+          playbackPosition: room.position || 0,
+          lastPlaybackUpdate: new Date(room.updated_at).getTime(),
+          hostId: room.host_id || null,
+          moodTheme: (room.mood_theme as MoodTheme) || s.moodTheme,
         }));
       }
     };
