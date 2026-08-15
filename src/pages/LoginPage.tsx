@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 const AVATARS = ["🐱", "🐶", "🦊", "🐰", "🐻", "🦄", "🐼", "🐨"];
 
 const LoginPage = () => {
-  const { login, register, isLoading } = useAuth();
+  const { login, register, signInWithGoogle, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
