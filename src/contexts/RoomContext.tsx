@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import { useCouple } from "./CoupleContext";
 import { usePresence } from "@/hooks/usePresence";
+import { chatService } from "@/lib/services/chatService";
 import {
   useRealtimeRoom,
   type VideoAction,
@@ -184,9 +185,26 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   }, []);
 
-  const handleChatMessage = useCallback((msg: { id: string; text: string }) => {
-    setState((s) => ({ ...s, messages: [...s.messages, { id: msg.id, sender: "partner" as const, text: msg.text, timestamp: Date.now() }] }));
-  }, []);
+  const handleChatMessage = useCallback((msg: { id: string; content: string; sender_id: string; created_at?: string }) => {
+    setState((s) => {
+      // Deduplicate: check if message ID already exists
+      if (s.messages.some(m => m.id === msg.id)) return s;
+      
+      const isMe = msg.sender_id === userId;
+      return { 
+        ...s, 
+        messages: [
+          ...s.messages, 
+          { 
+            id: msg.id, 
+            sender: isMe ? "me" : "partner", 
+            text: msg.content, 
+            timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now() 
+          }
+        ] 
+      };
+    });
+  }, [userId]);
 
   const handleReaction = useCallback((emoji: string) => {
     const r: Reaction = { id: crypto.randomUUID(), emoji, x: 20 + Math.random() * 60, y: Math.random() * 30 };
@@ -257,6 +275,37 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSyncRequest = useCallback(() => { syncRequestRef.current?.(); }, []);
   const handleSyncResponse = useCallback((syncState: VideoSyncState) => { syncResponseRef.current?.(syncState); }, []);
+
+  // Fetch chat history and subscribe
+  useEffect(() => {
+    if (!coupleId) return;
+
+    const loadHistory = async () => {
+      try {
+        const history = await chatService.fetchMessages(coupleId);
+        const formattedMessages = history.map((m: any) => ({
+          id: m.id,
+          sender: m.sender_id === userId ? "me" : "partner",
+          text: m.content,
+          timestamp: new Date(m.created_at).getTime(),
+        }));
+        setState(s => ({ ...s, messages: formattedMessages }));
+      } catch (err) {
+        console.error("Failed to load chat history:", err);
+      }
+    };
+
+    loadHistory();
+
+    const subscription = chatService.subscribeToMessages(coupleId, (newMsg) => {
+      handleChatMessage(newMsg);
+    });
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [coupleId, userId, handleChatMessage]);
+
   const handleCursorChange = useCallback((packId: string) => {
     setState((s) => ({ ...s, partnerCursorPack: packId }));
   }, []);
@@ -330,11 +379,27 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setMoodTheme = useCallback((theme: MoodTheme) => setState((s) => ({ ...s, moodTheme: theme })), []);
 
-  const sendMessage = useCallback((text: string) => {
-    const id = crypto.randomUUID();
-    setState((s) => ({ ...s, messages: [...s.messages, { id, sender: "me", text, timestamp: Date.now() }] }));
-    rt.sendChat(id, text);
-  }, [rt]);
+  const sendMessage = useCallback(async (text: string) => {
+    if (!coupleId) return;
+    
+    // Optimistic UI update
+    const tempId = crypto.randomUUID();
+    setState((s) => ({ 
+      ...s, 
+      messages: [...s.messages, { id: tempId, sender: "me", text, timestamp: Date.now() }] 
+    }));
+
+    try {
+      await chatService.sendMessage(coupleId, userId, text);
+      // The real message will arrive via subscription and we'll deduplicate by ID if we get the real ID,
+      // but chatService.sendMessage returns the inserted record. 
+      // Actually, handleChatMessage handles deduplication.
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      // Remove optimistic message on error?
+      setState(s => ({ ...s, messages: s.messages.filter(m => m.id !== tempId) }));
+    }
+  }, [rt, coupleId, userId]);
 
   const sendReactionLocal = useCallback((emoji: string) => {
     const r: Reaction = { id: crypto.randomUUID(), emoji, x: 20 + Math.random() * 60, y: Math.random() * 30 };

@@ -123,7 +123,7 @@ export const CoupleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const joinCouple = useCallback(async (code: string) => {
     setIsLoading(true);
-    const { data, error } = await supabase.rpc("join_couple_by_code" as never, { _pairing_code: code } as any);
+    const { data, error } = await supabase.rpc("join_couple_by_code" as never, { _pairing_code: code } as never);
     
     if (error) {
       setIsLoading(false);
