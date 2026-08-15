@@ -123,9 +123,9 @@ const SecretMessage = () => {
                 </motion.button>
               ) : (
                 <motion.div
-                  initial={{ rotateX: 90, opacity: 0 }}
-                  animate={{ rotateX: 0, opacity: 1 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  initial={{ rotateY: 90, opacity: 0, scale: 0.8 }}
+                  animate={{ rotateY: 0, opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-primary/8 border border-primary/15 text-sm text-foreground"
                 >
                   <div className="flex items-center gap-1.5 mb-1">
