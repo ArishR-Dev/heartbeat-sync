@@ -128,6 +128,8 @@ interface RoomContextType extends RoomState {
   startGame: (gameType: GameType, initialState: any) => Promise<void>;
   makeGameMove: (nextState: any, nextTurnId: string | null, winnerId: string | null) => Promise<void>;
   resetActiveGame: (nextTurnId: string, initialState: any) => Promise<void>;
+  user: any;
+  partner: any;
 }
 
 const RoomContext = createContext<RoomContextType | null>(null);
@@ -720,6 +722,8 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startGame,
         makeGameMove,
         resetActiveGame,
+        user,
+        partner,
       }}
     >
       {children}

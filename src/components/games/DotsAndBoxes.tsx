@@ -11,11 +11,9 @@ type Box = { r: number; c: number; owner: 1 | 2 | null };
 const lineKey = (l: Line) => `${l.r}-${l.c}-${l.dir}`;
 
 const DotsAndBoxes = () => {
-  const { broadcastGameAction, onGameAction } = useRoom();
+  const { activeGame, startGame, makeGameMove, resetActiveGame, user, partner } = useRoom();
   const [lines, setLines] = useState<Set<string>>(new Set());
   const [boxes, setBoxes] = useState<Map<string, 1 | 2>>(new Map());
-  const [myPlayer, setMyPlayer] = useState<1 | 2>(1);
-  const [isMyTurn, setIsMyTurn] = useState(true);
   const [hoverLine, setHoverLine] = useState<string | null>(null);
 
   const boxKey = (r: number, c: number) => `${r}-${c}`;
@@ -41,77 +39,45 @@ const DotsAndBoxes = () => {
   }, []);
 
   useEffect(() => {
-    onGameAction.current = (action: { type: string; [key: string]: unknown }) => {
-      if (action.game !== "dots") return;
-      if (action.type === "line") {
-        const lk = action.lineKey as string;
-        setLines(prev => {
-          const next = new Set(prev);
-          next.add(lk);
-          return next;
-        });
-        setBoxes(prev => {
-          const next = new Map(prev);
-          if (action.newBoxes) {
-            for (const [k, v] of Object.entries(action.newBoxes as Record<string, 1 | 2>)) {
-              next.set(k, v);
-            }
-          }
-          return next;
-        });
-        setIsMyTurn(!(action.extraTurn as boolean));
-      } else if (action.type === "reset" || action.type === "init") {
-        setLines(new Set());
-        setBoxes(new Map());
-        if (action.type === "init") {
-          const partnerPlayer = action.partnerPlayer as number;
-          setMyPlayer(partnerPlayer === 1 ? 2 : 1);
-          setIsMyTurn(partnerPlayer === 1);
-        } else {
-          setIsMyTurn(action.starterIsPartner as boolean);
-        }
-      }
-    };
-    return () => { onGameAction.current = null; };
-  }, [onGameAction]);
+    if (activeGame && activeGame.game_type === "dots") {
+      const state = activeGame.state as { lines: string[]; boxes: Record<string, 1 | 2> };
+      if (state.lines) setLines(new Set(state.lines));
+      if (state.boxes) setBoxes(new Map(Object.entries(state.boxes)));
+    }
+  }, [activeGame]);
 
-  const placeLine = (line: Line) => {
+  const isMyTurn = activeGame?.game_type === "dots" && activeGame.current_turn_id === user?.id;
+  const myPlayer = activeGame?.player1_id === user?.id ? 1 : 2;
+
+  const placeLine = async (line: Line) => {
     const lk = lineKey(line);
-    if (lines.has(lk) || !isMyTurn) return;
+    if (lines.has(lk) || !isMyTurn || !activeGame) return;
 
     const newLines = new Set(lines);
     newLines.add(lk);
     const { updated, captured } = checkBoxes(newLines, myPlayer, boxes);
     const extraTurn = captured > 0;
 
-    setLines(newLines);
-    setBoxes(updated);
-    if (!extraTurn) setIsMyTurn(false);
+    const nextTurnId = extraTurn ? user?.id : partner?.id || null;
+    
+    const totalBoxes = (SIZE - 1) * (SIZE - 1);
+    const winnerId = updated.size === totalBoxes ? (
+      Array.from(updated.values()).filter(v => v === 1).length > Array.from(updated.values()).filter(v => v === 2).length ? activeGame.player1_id : activeGame.player2_id
+    ) : null;
 
-    const newBoxEntries: Record<string, 1 | 2> = {};
-    updated.forEach((v, k) => { if (!boxes.has(k)) newBoxEntries[k] = v; });
-
-    broadcastGameAction({
-      game: "dots", type: "line", lineKey: lk,
-      newBoxes: Object.keys(newBoxEntries).length > 0 ? newBoxEntries : undefined,
-      extraTurn,
-    });
+    await makeGameMove({ 
+      lines: Array.from(newLines), 
+      boxes: Object.fromEntries(updated) 
+    }, nextTurnId, winnerId);
   };
 
-  const reset = () => {
-    setLines(new Set());
-    setBoxes(new Map());
-    setIsMyTurn(true);
-    broadcastGameAction({ game: "dots", type: "reset", starterIsPartner: true });
+  const reset = async () => {
+    if (!activeGame || !partner) return;
+    await resetActiveGame(partner.id, { lines: [], boxes: {} });
   };
 
-  const startNew = () => {
-    const p = Math.random() > 0.5 ? 1 : 2;
-    setMyPlayer(p as 1 | 2);
-    setLines(new Set());
-    setBoxes(new Map());
-    setIsMyTurn(p === 1);
-    broadcastGameAction({ game: "dots", type: "init", partnerPlayer: p });
+  const startNew = async () => {
+    await startGame("dots", { lines: [], boxes: {} });
   };
 
   const totalBoxes = (SIZE - 1) * (SIZE - 1);
