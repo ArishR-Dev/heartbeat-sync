@@ -27,10 +27,10 @@ const CursorPackCard = memo(({
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.9 }}
-    whileHover={{ scale: 1.04, y: -1 }}
-    whileTap={{ scale: 0.96 }}
+    whileHover={{ scale: 1.06, y: -2, rotate: 1 }}
+    whileTap={{ scale: 0.94, rotate: -1 }}
     onClick={onSelect}
-    className={`relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200 ${
+    className={`relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 ${
       selected
         ? "bg-primary/12 border-2 border-primary shadow-sm"
         : "glass border border-transparent hover:border-primary/20"
