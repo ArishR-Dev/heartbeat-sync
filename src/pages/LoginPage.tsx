@@ -53,12 +53,12 @@ const LoginPage = () => {
       if (isRegister) {
         await register(username, email, password, avatar, gender);
         setSuccessMessage("Account created! Please check your email to verify your account.");
-        setIsRegister(false);
       } else {
         await login(email, password);
         navigate("/");
       }
     } catch (error) {
+      console.error("Auth error:", error);
       const message = error instanceof Error ? error.message : "Authentication failed";
       setAuthError(message);
     }

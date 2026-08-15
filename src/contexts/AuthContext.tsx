@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { type User as SupabaseUser } from "@supabase/supabase-js";
 
 export interface User {
   id: string;
@@ -29,71 +31,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("pookie_user");
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Failed to parse saved user", e);
-      }
+  const fetchProfile = useCallback(async (supabaseUser: SupabaseUser) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", supabaseUser.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching profile:", error);
+      return null;
     }
-    setIsLoading(false);
+
+    return {
+      id: data.id,
+      username: data.username,
+      email: supabaseUser.email || "",
+      avatar: data.avatar || "🐱",
+      gender: data.gender as "male" | "female" | undefined,
+    };
   }, []);
+
+  useEffect(() => {
+    // Check active sessions and sets the user
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profile = await fetchProfile(session.user);
+        setUser(profile);
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
+
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user);
+        setUser(profile);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchProfile]);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockUser: User = {
-      id: crypto.randomUUID(),
-      username: email.split("@")[0] || "Pookie",
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      avatar: "🐱",
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem("pookie_user", JSON.stringify(mockUser));
-    setIsLoading(false);
+      password,
+    });
+    if (error) {
+      setIsLoading(false);
+      throw error;
+    }
   }, []);
 
   const register = useCallback(async (username: string, email: string, password: string, avatar: string, gender?: string) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockUser: User = {
-      id: crypto.randomUUID(),
-      username,
+    const { error } = await supabase.auth.signUp({
       email,
-      avatar,
-      gender: gender as "male" | "female" | undefined,
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem("pookie_user", JSON.stringify(mockUser));
-    setIsLoading(false);
+      password,
+      options: {
+        data: {
+          username,
+          avatar,
+          gender,
+        },
+      },
+    });
+    if (error) {
+      setIsLoading(false);
+      throw error;
+    }
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockUser: User = {
-      id: crypto.randomUUID(),
-      username: "Google Pookie",
-      email: "google@pookie.com",
-      avatar: "🦄",
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem("pookie_user", JSON.stringify(mockUser));
-    setIsLoading(false);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      setIsLoading(false);
+      throw error;
+    }
   }, []);
 
   const logout = useCallback(async () => {
+    setIsLoading(true);
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem("pookie_user");
+    setIsLoading(false);
   }, []);
 
   return (
