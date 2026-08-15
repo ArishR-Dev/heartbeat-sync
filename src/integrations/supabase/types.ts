@@ -62,6 +62,87 @@ export type Database = {
           },
         ]
       }
+      game_sessions: {
+        Row: {
+          couple_id: string
+          created_at: string | null
+          current_turn_id: string | null
+          game_type: string
+          id: string
+          player1_id: string | null
+          player2_id: string | null
+          state: Json
+          status: Database["public"]["Enums"]["game_status"] | null
+          updated_at: string | null
+          version: number | null
+          winner_id: string | null
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string | null
+          current_turn_id?: string | null
+          game_type: string
+          id?: string
+          player1_id?: string | null
+          player2_id?: string | null
+          state?: Json
+          status?: Database["public"]["Enums"]["game_status"] | null
+          updated_at?: string | null
+          version?: number | null
+          winner_id?: string | null
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string | null
+          current_turn_id?: string | null
+          game_type?: string
+          id?: string
+          player1_id?: string | null
+          player2_id?: string | null
+          state?: Json
+          status?: Database["public"]["Enums"]["game_status"] | null
+          updated_at?: string | null
+          version?: number | null
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sessions_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_current_turn_id_fkey"
+            columns: ["current_turn_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memories: {
         Row: {
           couple_id: string
@@ -346,6 +427,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      game_status: "active" | "finished" | "rematch_requested"
       relationship_status: "pairing" | "paired" | "unpaired"
       reveal_type: "timer" | "click"
     }
@@ -476,6 +558,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      game_status: ["active", "finished", "rematch_requested"],
       relationship_status: ["pairing", "paired", "unpaired"],
       reveal_type: ["timer", "click"],
     },
