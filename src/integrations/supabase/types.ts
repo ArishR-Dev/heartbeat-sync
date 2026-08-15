@@ -14,114 +14,326 @@ export type Database = {
   }
   public: {
     Tables: {
-      memories: {
+      couples: {
         Row: {
           created_at: string | null
-          date: string
-          emoji: string
           id: string
-          title: string
-          user_id: string
+          paired_at: string | null
+          pairing_code: string
+          status: Database["public"]["Enums"]["relationship_status"] | null
+          updated_at: string | null
+          user1_id: string | null
+          user2_id: string | null
         }
         Insert: {
           created_at?: string | null
-          date: string
-          emoji: string
           id?: string
-          title: string
-          user_id: string
+          paired_at?: string | null
+          pairing_code: string
+          status?: Database["public"]["Enums"]["relationship_status"] | null
+          updated_at?: string | null
+          user1_id?: string | null
+          user2_id?: string | null
         }
         Update: {
           created_at?: string | null
+          id?: string
+          paired_at?: string | null
+          pairing_code?: string
+          status?: Database["public"]["Enums"]["relationship_status"] | null
+          updated_at?: string | null
+          user1_id?: string | null
+          user2_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couples_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couples_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memories: {
+        Row: {
+          couple_id: string
+          created_at: string | null
+          date: string
+          emoji: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string | null
+          date: string
+          emoji?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string | null
           date?: string
-          emoji?: string
+          emoji?: string | null
           id?: string
           title?: string
-          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "memories_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
+          content: string
+          couple_id: string | null
           created_at: string | null
           id: string
-          room_code: string
-          text: string
-          user_id: string
+          room_id: string | null
+          sender_id: string
+          type: string | null
         }
         Insert: {
+          content: string
+          couple_id?: string | null
           created_at?: string | null
           id?: string
-          room_code: string
-          text: string
-          user_id: string
+          room_id?: string | null
+          sender_id: string
+          type?: string | null
         }
         Update: {
+          content?: string
+          couple_id?: string | null
           created_at?: string | null
           id?: string
-          room_code?: string
-          text?: string
-          user_id?: string
+          room_id?: string | null
+          sender_id?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          display_name: string | null
+          gender: string | null
+          id: string
+          last_seen: string | null
+          online_status: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          gender?: string | null
+          id: string
+          last_seen?: string | null
+          online_status?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          gender?: string | null
+          id?: string
+          last_seen?: string | null
+          online_status?: string | null
+          updated_at?: string | null
+          username?: string
         }
         Relationships: []
       }
+      rooms: {
+        Row: {
+          couple_id: string
+          created_at: string | null
+          host_id: string | null
+          id: string
+          is_active: boolean | null
+          last_activity: string | null
+          mood_theme: string | null
+          room_code: string
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string | null
+          host_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_activity?: string | null
+          mood_theme?: string | null
+          room_code: string
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string | null
+          host_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_activity?: string | null
+          mood_theme?: string | null
+          room_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedules: {
         Row: {
+          couple_id: string
           created_at: string | null
           date: string
           id: string
           time: string
           title: string
-          user_id: string
         }
         Insert: {
+          couple_id: string
           created_at?: string | null
           date: string
           id?: string
           time: string
           title: string
-          user_id: string
         }
         Update: {
+          couple_id?: string
           created_at?: string | null
           date?: string
           id?: string
           time?: string
           title?: string
-          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "schedules_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       secret_messages: {
         Row: {
+          couple_id: string
           created_at: string | null
           id: string
-          receiver_id: string | null
-          reveal_type: string
-          revealed: boolean | null
+          is_revealed: boolean | null
+          reveal_type: Database["public"]["Enums"]["reveal_type"] | null
+          revealed_at: string | null
           sender_id: string
           text: string
           timer_seconds: number | null
         }
         Insert: {
+          couple_id: string
           created_at?: string | null
           id?: string
-          receiver_id?: string | null
-          reveal_type: string
-          revealed?: boolean | null
+          is_revealed?: boolean | null
+          reveal_type?: Database["public"]["Enums"]["reveal_type"] | null
+          revealed_at?: string | null
           sender_id: string
           text: string
           timer_seconds?: number | null
         }
         Update: {
+          couple_id?: string
           created_at?: string | null
           id?: string
-          receiver_id?: string | null
-          reveal_type?: string
-          revealed?: boolean | null
+          is_revealed?: boolean | null
+          reveal_type?: Database["public"]["Enums"]["reveal_type"] | null
+          revealed_at?: string | null
           sender_id?: string
           text?: string
           timer_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secret_messages_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "secret_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -133,7 +345,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      relationship_status: "pairing" | "paired" | "unpaired"
+      reveal_type: "timer" | "click"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -260,6 +474,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      relationship_status: ["pairing", "paired", "unpaired"],
+      reveal_type: ["timer", "click"],
+    },
   },
 } as const
