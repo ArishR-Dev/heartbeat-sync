@@ -175,7 +175,6 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => { localStorage.setItem("pookie_schedules", JSON.stringify(state.scheduledDates)); }, [state.scheduledDates]);
 
   const handlePartnerJoin = useCallback(() => {
-    // Handled by pairingStatus in Phase 2
   }, []);
 
   const handlePartnerLeave = useCallback(() => {
@@ -214,13 +213,13 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const handleSecretMessage = useCallback((msg: SecretMessagePayload) => {
-    const secret: SecretMsg = { ...msg, revealed: false, createdAt: Date.now(), sender: "partner" };
+  const handleSecretMessage = useCallback((handleMsg: SecretMessagePayload) => {
+    const secret: SecretMsg = { ...handleMsg, revealed: false, createdAt: Date.now(), sender: "partner" };
     setState((s) => ({ ...s, secretMessages: [...s.secretMessages, secret] }));
-    if (msg.revealType === "timer" && msg.timerSeconds) {
+    if (handleMsg.revealType === "timer" && handleMsg.timerSeconds) {
       setTimeout(() => {
-        setState((s) => ({ ...s, secretMessages: s.secretMessages.map((m) => m.id === msg.id ? { ...m, revealed: true } : m) }));
-      }, msg.timerSeconds * 1000);
+        setState((s) => ({ ...s, secretMessages: s.secretMessages.map((m) => m.id === handleMsg.id ? { ...m, revealed: true } : m) }));
+      }, handleMsg.timerSeconds * 1000);
     }
   }, []);
 
