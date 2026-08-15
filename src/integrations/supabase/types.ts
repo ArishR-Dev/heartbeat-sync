@@ -143,6 +143,60 @@ export type Database = {
           },
         ]
       }
+      hold_hands_sessions: {
+        Row: {
+          couple_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          receiver_id: string | null
+          requester_id: string
+          room_id: string
+          state: Database["public"]["Enums"]["hold_hands_state"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          receiver_id?: string | null
+          requester_id: string
+          room_id: string
+          state?: Database["public"]["Enums"]["hold_hands_state"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          receiver_id?: string | null
+          requester_id?: string
+          room_id?: string
+          state?: Database["public"]["Enums"]["hold_hands_state"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hold_hands_sessions_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: true
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hold_hands_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memories: {
         Row: {
           couple_id: string
@@ -428,6 +482,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       game_status: "active" | "finished" | "rematch_requested"
+      hold_hands_state:
+        | "idle"
+        | "requesting"
+        | "approaching"
+        | "holding"
+        | "releasing"
       relationship_status: "pairing" | "paired" | "unpaired"
       reveal_type: "timer" | "click"
     }
@@ -559,6 +619,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       game_status: ["active", "finished", "rematch_requested"],
+      hold_hands_state: [
+        "idle",
+        "requesting",
+        "approaching",
+        "holding",
+        "releasing",
+      ],
       relationship_status: ["pairing", "paired", "unpaired"],
       reveal_type: ["timer", "click"],
     },
