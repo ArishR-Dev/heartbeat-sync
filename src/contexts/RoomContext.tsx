@@ -342,12 +342,12 @@ export const RoomProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const newRoom = payload.new;
           setState((s) => ({
             ...s,
-            mediaUrl: newRoom.media_url,
-            isPlaying: newRoom.is_playing,
-            playbackPosition: newRoom.position,
+            mediaUrl: newRoom.media_url || null,
+            isPlaying: !!newRoom.is_playing,
+            playbackPosition: newRoom.position || 0,
             lastPlaybackUpdate: new Date(newRoom.updated_at).getTime(),
-            hostId: newRoom.host_id,
-            moodTheme: newRoom.mood_theme || s.moodTheme,
+            hostId: newRoom.host_id || null,
+            moodTheme: newRoom.mood_theme as MoodTheme || s.moodTheme,
           }));
           
           // Trigger local video sync
