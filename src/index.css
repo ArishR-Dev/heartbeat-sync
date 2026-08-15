@@ -1,0 +1,285 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Pacifico&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 340 25% 97%;
+    --foreground: 340 30% 12%;
+
+    --card: 340 25% 98%;
+    --card-foreground: 340 30% 12%;
+
+    --popover: 340 25% 98%;
+    --popover-foreground: 340 30% 12%;
+
+    --primary: 340 76% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 270 55% 65%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 340 15% 93%;
+    --muted-foreground: 340 12% 46%;
+
+    --accent: 270 50% 62%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 78% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 340 15% 89%;
+    --input: 340 15% 89%;
+    --ring: 340 76% 58%;
+
+    --radius: 1rem;
+
+    /* Custom PookieWatch tokens */
+    --pookie-glow: 340 76% 58%;
+    --pookie-soft: 340 50% 96%;
+    --pookie-warm: 20 80% 65%;
+    --pookie-love: 350 85% 52%;
+    --pookie-glass: 340 25% 98% / 0.72;
+    --pookie-gradient-start: 340 76% 58%;
+    --pookie-gradient-mid: 310 65% 60%;
+    --pookie-gradient-end: 270 55% 65%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* Night cuddle theme */
+  .theme-night {
+    --background: 260 30% 7%;
+    --foreground: 260 15% 92%;
+    --card: 260 25% 11%;
+    --card-foreground: 260 15% 92%;
+    --popover: 260 25% 11%;
+    --popover-foreground: 260 15% 92%;
+    --primary: 270 75% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 300 45% 48%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 260 18% 16%;
+    --muted-foreground: 260 12% 58%;
+    --accent: 280 65% 58%;
+    --accent-foreground: 0 0% 100%;
+    --border: 260 18% 19%;
+    --input: 260 18% 19%;
+    --ring: 270 75% 62%;
+    --pookie-glow: 270 75% 62%;
+    --pookie-soft: 260 28% 14%;
+    --pookie-glass: 260 25% 11% / 0.75;
+    --pookie-gradient-start: 270 75% 62%;
+    --pookie-gradient-mid: 290 60% 55%;
+    --pookie-gradient-end: 300 45% 48%;
+  }
+
+  /* Horror theme */
+  .theme-horror {
+    --background: 0 18% 5%;
+    --foreground: 0 8% 86%;
+    --card: 0 14% 9%;
+    --card-foreground: 0 8% 86%;
+    --popover: 0 14% 9%;
+    --popover-foreground: 0 8% 86%;
+    --primary: 0 80% 44%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 55% 30%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 12% 14%;
+    --muted-foreground: 0 8% 52%;
+    --accent: 15 75% 48%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 12% 17%;
+    --input: 0 12% 17%;
+    --ring: 0 80% 44%;
+    --pookie-glow: 0 80% 44%;
+    --pookie-soft: 0 18% 11%;
+    --pookie-glass: 0 14% 9% / 0.75;
+    --pookie-gradient-start: 0 80% 44%;
+    --pookie-gradient-mid: 10 70% 40%;
+    --pookie-gradient-end: 0 55% 30%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Quicksand', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Interactive card with lift effect */
+  .card-interactive {
+    @apply transition-all duration-200;
+    will-change: transform, box-shadow;
+  }
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px hsl(var(--foreground) / 0.06), 0 2px 8px hsl(var(--foreground) / 0.03);
+  }
+
+  /* Button press micro-interaction */
+  .btn-press {
+    @apply transition-transform duration-150;
+    will-change: transform;
+  }
+  .btn-press:hover {
+    transform: scale(1.03);
+  }
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded-xl;
+  }
+}
+
+@layer utilities {
+  .font-brand {
+    font-family: 'Pacifico', cursive;
+  }
+
+  .glass {
+    @apply backdrop-blur-xl border border-border/40;
+    background: hsl(var(--card) / 0.68);
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl border border-border/50;
+    background: hsl(var(--card) / 0.88);
+    box-shadow: 0 4px 24px hsl(var(--foreground) / 0.04);
+  }
+
+  .pookie-gradient {
+    background: linear-gradient(135deg, hsl(var(--pookie-gradient-start)), hsl(var(--pookie-gradient-mid)), hsl(var(--pookie-gradient-end)));
+  }
+
+  .pookie-glow {
+    box-shadow: 0 0 30px hsl(var(--pookie-glow) / 0.25), 0 0 60px hsl(var(--pookie-glow) / 0.1);
+  }
+
+  .pookie-text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--pookie-gradient-start)), hsl(var(--pookie-gradient-end)));
+  }
+
+  .hold-hands-overlay {
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(var(--pookie-glow) / 0.15) 100%);
+  }
+
+  /* GPU-accelerated animations */
+  .gpu-accelerate {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+  }
+
+  .heartbeat {
+    animation: heartbeat 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.15); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.1); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(180deg); }
+  }
+
+  @keyframes cursor-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-sparkle {
+    animation: sparkle 1.5s ease-in-out infinite;
+  }
+
+  .animate-cursor-bounce {
+    animation: cursor-bounce 1s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.08) 50%, hsl(var(--muted)) 75%);
+    background-size: 200% 100%;
+  }
+
+  /* Custom scrollbar */
+  .custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .custom-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+  }
+  .custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  /* Fade edges for scroll containers */
+  .scroll-fade-y {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%);
+  }
+
+  /* Cozy mode ambient gradient */
+  .cozy-gradient-bg {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.04) 0%,
+      hsl(var(--secondary) / 0.06) 30%,
+      hsl(var(--accent) / 0.05) 60%,
+      hsl(var(--primary) / 0.03) 100%
+    );
+    animation: cozy-shift 12s ease-in-out infinite alternate;
+  }
+
+  @keyframes cozy-shift {
+    0% { opacity: 0.6; filter: hue-rotate(0deg); }
+    50% { opacity: 0.8; filter: hue-rotate(15deg); }
+    100% { opacity: 0.6; filter: hue-rotate(-10deg); }
+  }
+}
