@@ -8,7 +8,7 @@ const HoldHandsOverlay = () => {
 
   // Heartbeat sound
   useEffect(() => {
-    if (!holdingHands) return;
+    if (!holdingHands || holdHandsRequest) return;
     const ctx = new AudioContext();
     let playing = true;
 
@@ -45,7 +45,7 @@ const HoldHandsOverlay = () => {
     <>
       {/* Hold Hands Request Popup */}
       <AnimatePresence>
-        {holdHandsRequest && (
+        {holdHandsRequest && !holdingHands && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
