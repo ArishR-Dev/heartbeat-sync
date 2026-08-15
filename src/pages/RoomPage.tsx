@@ -47,7 +47,7 @@ const tabTransition = { duration: 0.2, ease: [0.4, 0, 0.2, 1] as const };
 const RoomPage = () => {
   const {
     roomCode, partnerJoined, leaveRoom, joinRoom,
-    requestHoldHands, myHoldHands, holdingHands, moodTheme,
+    requestHoldHands, toggleMyHoldHands, myHoldHands, holdingHands, moodTheme,
     partnerStatus, partnerActivity, partnerTyping,
     connectionStatus, addMemory, secretMessages, broadcastActivity,
   } = useRoom();
