@@ -91,7 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     setIsLoading(false);
     if (error) throw error;
-    if (data.user) setUser(mapSupabaseUser(data.user));
+    if (data.user) {
+      if (data.session) {
+        setUser(mapSupabaseUser(data.user));
+      } else {
+        // This handles the case where email verification is required and auto-confirm is off
+        throw new Error("Please check your email to verify your account before logging in.");
+      }
+    }
   }, [mapSupabaseUser]);
 
   const signInWithGoogle = useCallback(async () => {
