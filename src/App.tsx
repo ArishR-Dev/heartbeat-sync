@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoomProvider } from "@/contexts/RoomContext";
+import { CoupleProvider } from "@/contexts/CoupleContext";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import RoomPage from "./pages/RoomPage";
@@ -18,7 +19,8 @@ const App = () => (
     <BrowserRouter>
       <TooltipProvider>
         <AuthProvider>
-          <RoomProvider>
+          <CoupleProvider>
+            <RoomProvider>
             <Toaster />
             <Sonner />
             <Routes>
@@ -27,7 +29,8 @@ const App = () => (
               <Route path="/room" element={<RoomPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </RoomProvider>
+            </RoomProvider>
+          </CoupleProvider>
         </AuthProvider>
       </TooltipProvider>
     </BrowserRouter>
